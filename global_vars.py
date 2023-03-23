@@ -9,6 +9,11 @@ picks_URL = "https://www49.myfantasyleague.com/2023/export?TYPE=futureDraftPicks
 rosters_URL = "https://wideright.app/api/v1/rosters"
 players_url = 'https://www49.myfantasyleague.com/2023/export?TYPE=players&L=59643&APIKEY=&DETAILS=&SINCE=&PLAYERS=&JSON=1'
 
+#Images
+dollar_icon = "https://icons.veryicon.com/png/o/business/business-icon-2/money-42.png"
+contract_icon = "https://cdn-icons-png.flaticon.com/512/126/126249.png"
+player_icon = "https://cdn-icons-png.flaticon.com/512/164/164457.png"
+
 #League Year
 cur_month = datetime.now().month
 cur_yr = datetime.now().year
@@ -33,4 +38,10 @@ contract_yrs = list(range(1,max_contract_yrs+1,1))
 zipped_list = list(zip(contract_yrs, yr_list))
 cols = ["Contract Length", "Year"]
 zipped_df = pd.DataFrame(zipped_list, columns = cols)
+
+# Positional Order
+df_mapping = pd.DataFrame({
+    'positions': ['QB', 'RB', 'WR', 'TE', 'DEF', 'K'],
+})
+sort_mapping = df_mapping.reset_index().set_index('positions')
 
