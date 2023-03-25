@@ -62,6 +62,7 @@ filtered_df = filtered_df.rename(columns={"name": "Player", "position": "Positio
 hide_table_row_index = """
             <style>
             thead tr th:first-child {display:none}
+            tr:nth-child(even) {background-color: #f2f2f2;}
             tbody th {display:none}
             </style>
             """
@@ -85,24 +86,31 @@ col1, col2, col3, col4, col5 = st.columns(5)
 col1.image(global_vars.dollar_icon)
 col1.metric("Cap Used", cap_used)
 col1.metric("Cap Space", cap_space)
-fig = px.pie(filtered_df, values= filtered_df["salary"], names= filtered_df["Position"], title='Cap Dollars by Position')
-col1.plotly_chart(fig, use_container_width=True)
 
 # Contract Years
 col3.image(global_vars.contract_icon)
 col3.metric("Contract Years Used", contract_yrs_used)
 col3.metric("Contract Years Free", contract_yrs_free)
-fig = px.pie(filtered_df, values= filtered_df["contract_years"], names= filtered_df["Position"], title='Contract Years by Position')
-col3.plotly_chart(fig, use_container_width=True)
 
 #Roster Spots
 col5.image(global_vars.player_icon)
 col5.metric("Roster Spots Used", roster_spots_used)
 col5.metric("Roster Spots Free", roster_spots_free)
-fig = px.pie(filtered_df, values= filtered_df["mfl_id"], names= filtered_df["Position"], title='Roster Spots by Position')
-col5.plotly_chart(fig, use_container_width=True)
 
+with st.expander("Positional Breakdowns"):
+    pos1, pos2, pos3= st.columns(3)
 
+    fig = px.pie(filtered_df, values= filtered_df["salary"], names= filtered_df["Position"], title='Cap Dollars by Position')
+    fig.update_traces(textposition='inside', textinfo='value')
+    pos1.plotly_chart(fig, use_container_width=True)
+
+    fig = px.pie(filtered_df, values= filtered_df["contract_years"], names= filtered_df["Position"], title='Contract Years by Position')
+    fig.update_traces(textposition='inside', textinfo='value')
+    pos2.plotly_chart(fig, use_container_width=True)
+
+    # fig = px.pie(filtered_df, values= filtered_df["mfl_id"], names= filtered_df["Position"], title='Roster Spots by Position')
+    # fig.update_traces(textposition='inside', textinfo='label+text+value+percent')
+    # pos3.plotly_chart(fig, use_container_width=True)
 
 
 
