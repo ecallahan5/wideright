@@ -108,9 +108,10 @@ with st.expander("Positional Breakdowns"):
     fig.update_traces(textposition='inside', textinfo='value')
     pos2.plotly_chart(fig, use_container_width=True)
 
-    # fig = px.pie(filtered_df, values= filtered_df["mfl_id"], names= filtered_df["Position"], title='Roster Spots by Position')
-    # fig.update_traces(textposition='inside', textinfo='label+text+value+percent')
-    # pos3.plotly_chart(fig, use_container_width=True)
+    roster_values = filtered_df["mfl_id"].value_counts()
+    fig = px.pie(filtered_df, values= roster_values, names= filtered_df["Position"], title='Roster Spots by Position')
+    fig.update_traces(textposition='inside', textinfo='value')
+    pos3.plotly_chart(fig, use_container_width=True)
 
 
 
