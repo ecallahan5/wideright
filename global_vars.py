@@ -5,7 +5,7 @@ import pandas as pd
 
 # Endpoints
 franchises_URL = "https://wideright.app/api/v1/franchises"
-picks_URL = "https://www49.myfantasyleague.com/2023/export?TYPE=futureDraftPicks&L=59643&APIKEY=ahFi18iVvuWtx02mPVDHZTEeF7ox&JSON=1"
+picks_URL = "https://www49.myfantasyleague.com/2023/export?TYPE=futureDraftPicks&L=59643&JSON=1"
 rosters_URL = "https://wideright.app/api/v1/rosters"
 players_url = 'https://www49.myfantasyleague.com/2023/export?TYPE=players&L=59643&APIKEY=&DETAILS=&SINCE=&PLAYERS=&JSON=1'
 
