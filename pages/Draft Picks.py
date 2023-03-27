@@ -4,23 +4,22 @@ import streamlit as st
 import requests
 import json
 import config
+import global_vars
 
 site_token = config.key
-picks_URL = "https://www49.myfantasyleague.com/2023/export?TYPE=futureDraftPicks&L=59643&APIKEY=ahFi18iVvuWtx02mPVDHZTEeF7ox&JSON=1"
-franchises_URL = "https://wideright.app/api/v1/franchises"
 
 st.set_page_config(layout="wide")
 st.title("Draft Picks")
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
 # Get the list of teams
-r = requests.get(url = franchises_URL, headers={'Authorization': 'Bearer ' + site_token }) 
+r = requests.get(url = global_vars.franchises_URL, headers={'Authorization': 'Bearer ' + site_token }) 
 franchises = r.json()
 keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
 df_franchises = pd.DataFrame(franchises)[keep_cols]
 
 # Get the draft picks from the API
-r = requests.get(url = picks_URL, headers={'Authorization': 'Bearer ' + site_token }) 
+r = requests.get(url = global_vars.picks_URL, headers={'Authorization': 'Bearer ' + site_token }) 
 data = r.json()["futureDraftPicks"]["franchise"]
 
 picks = []
