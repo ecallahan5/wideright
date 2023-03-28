@@ -3,11 +3,14 @@ from datetime import datetime
 import requests
 import pandas as pd
 
+league_id = 59643
+
 # Endpoints
 franchises_URL = "https://wideright.app/api/v1/franchises"
-picks_URL = "https://www49.myfantasyleague.com/2023/export?TYPE=futureDraftPicks&L=59643&JSON=1"
+# picks_URL = "https://www49.myfantasyleague.com/2023/export?TYPE=futureDraftPicks&L=59643&JSON=1"
+picks_URL = 'https://www49.myfantasyleague.com/2023/export?TYPE=futureDraftPicks&L='+str(league_id)+'&JSON=1'
 rosters_URL = "https://wideright.app/api/v1/rosters"
-players_url = 'https://www49.myfantasyleague.com/2023/export?TYPE=players&L=59643&APIKEY=&DETAILS=&SINCE=&PLAYERS=&JSON=1'
+players_url = 'https://www49.myfantasyleague.com/2023/export?TYPE=players&L='+str(league_id)+'&APIKEY=&DETAILS=&SINCE=&PLAYERS=&JSON=1'
 
 #Images
 dollar_icon = "https://icons.veryicon.com/png/o/business/business-icon-2/money-42.png"
@@ -24,7 +27,7 @@ else:
     league_yr = cur_yr-1
 
 #League Data
-league_url = 'https://www49.myfantasyleague.com/'+str(league_yr)+'/export?TYPE=league&L=59643&APIKEY=&JSON=1'
+league_url = 'https://www49.myfantasyleague.com/'+str(league_yr)+'/export?TYPE=league&L='+str(league_id)+'&APIKEY=&JSON=1'
 r = requests.get(url = league_url)
 league = r.json()["league"]
 roster_size = int(league["rosterSize"])
