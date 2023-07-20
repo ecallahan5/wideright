@@ -68,7 +68,7 @@ hide_table_row_index = """
             """
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
 table_cols = ["Player", "Position", "Salary "]
-st.table(filtered_df[table_cols])
+st.dataframe(filtered_df[table_cols], use_container_width=True, hide_index=True)
 
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
