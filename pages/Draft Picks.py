@@ -51,9 +51,7 @@ picks_clean = picks_df.drop(["id", "originalPickFor"], axis = 1).rename(columns=
 hide_table_row_index = """
             <style>
             thead tr th:first-child {display:none}
-            tr:nth-child(even) {background-color: #f2f2f2;}
             tbody th {display:none}
-            </style>
             """
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
