@@ -45,6 +45,7 @@ players_df1 = rosters_df.merge(players_df, how = 'left', left_on = 'mfl_id', rig
 # Filter for Holdout Eligible Players 
 holdouts_df = players_df1.loc[players_df1["mfl_id"].isin(global_vars.holdouts_2023)].sort_values(by=["salary"], ascending = False).drop(['mfl_id', 'status'], axis=1)
 
+
 # Get the list of teams
 r = requests.get(url = global_vars.franchises_URL, headers={'Authorization': 'Bearer ' + site_token }) 
 franchises = r.json()
@@ -86,7 +87,8 @@ def main():
         "salary": st.column_config.NumberColumn(
             "Salary",
             format="$%d")
-    })
+    },
+        column_order=("name", "position", "salary", "contract_years", "franchise_name") )
     st.title("Holdouts Ballot")
 
     selected_rows, submit_button = create_form()
