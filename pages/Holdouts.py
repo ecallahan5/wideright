@@ -34,7 +34,7 @@ rosters_df = pd.DataFrame(rosters)[keep_cols]
 rosters_df['mfl_id'] = rosters_df['mfl_id'].astype(str)
 
 # Get player metadata
-r = requests.get(url = global_vars.players_url) 
+r = requests.get(url = global_vars.players_URL) 
 players = r.json()["players"]["player"]
 keep_cols = ["position", "id", "name"]
 players_df = pd.DataFrame(players)[keep_cols]

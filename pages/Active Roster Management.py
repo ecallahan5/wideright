@@ -6,7 +6,7 @@ import json
 import plotly.express as px
 import config
 import global_vars
-
+import api_calls
 
 site_token = config.key
 
@@ -15,8 +15,8 @@ st.title("Roster Construction")
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
 # Get the list of teams
-r = requests.get(url = global_vars.franchises_URL, headers={'Authorization': 'Bearer ' + site_token }) 
-franchises = r.json()
+
+franchises = api_calls.get_teams()
 keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
 df_franchises = pd.DataFrame(franchises)[keep_cols]
 
@@ -28,7 +28,7 @@ rosters_df = pd.DataFrame(rosters)[keep_cols]
 rosters_df['mfl_id'] = rosters_df['mfl_id'].astype(str)
 
 # Get player metadata
-r = requests.get(url = global_vars.players_url) 
+r = requests.get(url = global_vars.players_URL) 
 players = r.json()["players"]["player"]
 keep_cols = ["position", "id", "name"]
 players_df = pd.DataFrame(players)[keep_cols]
