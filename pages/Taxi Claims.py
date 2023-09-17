@@ -8,23 +8,6 @@ import api_calls
 site_token = config.key
 
 st.set_page_config(layout="wide")
-st.title("Taxi Claims")
-st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
-
-# with st.chat_message("Norwood", avatar = "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/scott-norwood-1486054177.jpg?crop=1.00xw:0.358xh;0,0.226xh&resize=900:*"):
-#     st.write("What team are you claming for?")
-
-# Get the list of teams
-franchises = api_calls.get_teams()
-keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
-df_franchises = pd.DataFrame(franchises)[keep_cols]
-
-team = st.selectbox(
-    'Choose a team', [""] + sorted(df_franchises["franchise_name"].unique()))
-
-# Get the list of players
-players = api_calls.get_players_wr()
-df_players = pd.DataFrame(players)
 
 # Import Schedules
 schedule = api_calls.get_schedule()
@@ -53,8 +36,25 @@ def extract_values(obj, key):
 names = extract_values(schedule, 'current_week')
 current_wk = round(float(names[0]))
 next_wk = current_wk + 1
-current_wk = (str(current_wk))
-next_wk =    (str(next_wk))
+
+st.title("Taxi Claims for Week "+str(current_wk) )
+st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+
+# with st.chat_message("Norwood", avatar = "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/scott-norwood-1486054177.jpg?crop=1.00xw:0.358xh;0,0.226xh&resize=900:*"):
+#     st.write("What team are you claming for?")
+
+# Get the list of teams
+franchises = api_calls.get_teams()
+keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
+df_franchises = pd.DataFrame(franchises)[keep_cols]
+
+team = st.selectbox(
+    'Choose a team', [""] + sorted(df_franchises["franchise_name"].unique()))
+
+# Get the list of players
+players = api_calls.get_players_wr()
+df_players = pd.DataFrame(players)
+
 
 # # ID Claim Eligible Players by Scores
 @st.cache_data
@@ -79,6 +79,9 @@ claimable_players = filter_players(df_players)
 
 rosters = pd.DataFrame(api_calls.get_rosters())
 
+current_wk = (str(current_wk))
+next_wk =    (str(next_wk))
+
 current_wk_dict = {}
 next_wk_dict = {}
 
@@ -90,11 +93,6 @@ for matchup in current_wk_schedule:
   ids = [ matchup[k] for k in ('home_franchise_id', 'away_franchise_id')]
   current_wk_dict[ids[0]] = [ids[1]]
   current_wk_dict[ids[1]] = [ids[0]]
-
-# for matchup in next_wk_schedule:
-#   ids = [ matchup[k] for k in ('home_franchise_id', 'away_franchise_id')]
-#   next_wk_dict[ids[0]] = [ids[1]]
-#   next_wk_dict[ids[1]] = [ids[0]]
 
 team_exclusions = {}
 for key in set().union(current_wk_dict, next_wk_dict):
@@ -129,6 +127,21 @@ for franchise, a in df_team_exclusions.iterrows():
       claimables[franchise].append(int(claim_elig3.loc[player, 'mfl_id']))
 
 # -------------------------
-#  Marry up team with the team id
-# st.write(claimables[team])
-st.write("I'm almost finished!")
+#Table style
+hide_table_row_index = """
+            <style>
+            thead tr th:first-child {display:none}
+            tbody th {display:none}
+            """
+st.markdown(hide_table_row_index, unsafe_allow_html=True)
+
+try:
+    team_lookup = df_franchises.loc[df_franchises['franchise_name'] == team]["mfl_id"].values[0]
+    # st.write(claimables[str(team_lookup)])
+    team_claimables = claimables[str(team_lookup)]
+    st.table(claim_elig2.loc[claim_elig2["mfl_id"].isin(team_claimables)].drop(["mfl_id"], axis = 1))
+except:
+    st.write("Please select a team above")
+
+
+
