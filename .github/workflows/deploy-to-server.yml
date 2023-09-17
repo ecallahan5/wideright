@@ -15,3 +15,11 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: cd /home/forge/streamlit && git pull origin main
+      - name: restarting streamlit and clearing cache
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: sudo supervisorctl restart streamlit && streamlit cache clear
