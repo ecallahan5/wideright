@@ -49,7 +49,7 @@ keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
 df_franchises = pd.DataFrame(franchises)[keep_cols]
 
 team = st.selectbox(
-    'Choose a team', [""] + sorted(df_franchises["franchise_name"].unique()))
+    'Which Team is Making the Claim?', [""] + sorted(df_franchises["franchise_name"].unique()))
 
 # Get the list of players
 players = api_calls.get_players_wr()
@@ -139,6 +139,7 @@ try:
     team_lookup = df_franchises.loc[df_franchises['franchise_name'] == team]["mfl_id"].values[0]
     # st.write(claimables[str(team_lookup)])
     team_claimables = claimables[str(team_lookup)]
+    st.write("Players eligible to be claimed")
     st.table(claim_elig2.loc[claim_elig2["mfl_id"].isin(team_claimables)].drop(["mfl_id"], axis = 1))
 except:
     st.write("Please select a team above")
