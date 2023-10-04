@@ -15,7 +15,6 @@ st.title("Roster Construction")
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
 # Get the list of teams
-
 franchises = api_calls.get_teams()
 keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
 df_franchises = pd.DataFrame(franchises)[keep_cols]
@@ -27,13 +26,14 @@ rosters_df = pd.DataFrame(rosters)[keep_cols]
 rosters_df['mfl_id'] = rosters_df['mfl_id'].astype(str)
 
 # Get player metadata
-r = requests.get(url = global_vars.players_URL) 
-players = r.json()["players"]["player"]
-keep_cols = ["position", "id", "name"]
+players = api_calls.get_players_wr()
+keep_cols = ["position", "mfl_id", "first_name", "last_name"]
 players_df = pd.DataFrame(players)[keep_cols]
+players_df["mfl_id"] = players_df["mfl_id"].astype(str)
+
 
 # Join player dfs
-players_df1 = rosters_df.merge(players_df, how = 'left', left_on = 'mfl_id', right_on = 'id').drop(['id'], axis=1)
+players_df1 = rosters_df.merge(players_df, how = 'left', left_on = 'mfl_id', right_on = 'mfl_id')
 
 col1, col2 = st.columns(2)
 
@@ -55,7 +55,7 @@ contract_yrs = global_vars.zipped_df.loc[global_vars.zipped_df["Year"] == year][
 filtered_df = players_df1.loc[(players_df1["franchise_name"] == team) & ((players_df1["contract_years"]) >= contract_yrs)]
 filtered_df["salary1"] = filtered_df["salary"].apply("${:,.2f}".format)
 filtered_df['position_order'] = filtered_df['position'].map(global_vars.sort_mapping['index'])
-filtered_df = filtered_df.rename(columns={"name": "Player", "position": "Position", "salary1": "Salary "}).sort_values('position_order')
+filtered_df = filtered_df.rename(columns={"first_name": "First Name", "last_name": "Last Name","position": "Position", "salary": "Salary "}).sort_values('position_order')
 
 # Table style
 hide_table_row_index = """
@@ -66,7 +66,7 @@ hide_table_row_index = """
             </style>
             """
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
-table_cols = ["Player", "Position", "Salary "]
+table_cols = ["First Name", "Last Name", "Position", "Salary "]
 st.dataframe(filtered_df[table_cols], use_container_width=True, hide_index=True)
 
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
@@ -81,7 +81,7 @@ roster_spots_free = global_vars.roster_size - roster_spots_used
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# #Cap Dollars
+#Cap Dollars
 col1.image(global_vars.dollar_icon)
 col1.metric("Cap Used", cap_used)
 col1.metric("Cap Space", cap_space)
