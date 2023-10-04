@@ -55,7 +55,7 @@ contract_yrs = global_vars.zipped_df.loc[global_vars.zipped_df["Year"] == year][
 filtered_df = players_df1.loc[(players_df1["franchise_name"] == team) & ((players_df1["contract_years"]) >= contract_yrs)]
 filtered_df["salary1"] = filtered_df["salary"].apply("${:,.2f}".format)
 filtered_df['position_order'] = filtered_df['position'].map(global_vars.sort_mapping['index'])
-filtered_df = filtered_df.rename(columns={"first_name": "First Name", "last_name": "Last Name","position": "Position", "salary": "Salary "}).sort_values('position_order')
+filtered_df = filtered_df.rename(columns={"first_name": "First Name", "last_name": "Last Name","position": "Position", "salary": "Salary"}).sort_values('position_order')
 
 # Table style
 hide_table_row_index = """
@@ -66,16 +66,16 @@ hide_table_row_index = """
             </style>
             """
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
-table_cols = ["First Name", "Last Name", "Position", "Salary "]
+table_cols = ["First Name", "Last Name", "Position", "Salary"]
 st.dataframe(filtered_df[table_cols], use_container_width=True, hide_index=True)
 
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
-cap_used = "${:,.2f}".format(filtered_df["salary"].sum())
+cap_used = "${:,.2f}".format(filtered_df["Salary"].sum())
 contract_yrs_used = filtered_df["contract_years"].sum()
 roster_spots_used = filtered_df["mfl_id"].count()
 
-cap_space = "${:,.2f}".format(global_vars.salary_cap - filtered_df["salary"].sum())
+cap_space = "${:,.2f}".format(global_vars.salary_cap - filtered_df["Salary"].sum())
 contract_yrs_free = global_vars.contract_cap - contract_yrs_used
 roster_spots_free = global_vars.roster_size - roster_spots_used
 
@@ -99,7 +99,7 @@ col5.metric("Roster Spots Free", roster_spots_free)
 with st.expander("Positional Breakdowns"):
     pos1, pos2, pos3= st.columns(3)
 
-    fig = px.pie(filtered_df, values= filtered_df["salary"], names= filtered_df["Position"], title='Cap Dollars by Position')
+    fig = px.pie(filtered_df, values= filtered_df["Salary"], names= filtered_df["Position"], title='Cap Dollars by Position')
     fig.update_traces(textposition='inside', textinfo='value')
     pos1.plotly_chart(fig, use_container_width=True)
 
