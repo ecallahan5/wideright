@@ -44,7 +44,7 @@ zipped_df = pd.DataFrame(zipped_list, columns = cols)
 
 # Positional Order
 df_mapping = pd.DataFrame({
-    'positions': ['QB', 'RB', 'WR', 'TE', 'DEF', 'K'],
+    'positions': ['QB', 'RB', 'WR', 'TE', 'Def', 'PK'],
 })
 sort_mapping = df_mapping.reset_index().set_index('positions')
 
