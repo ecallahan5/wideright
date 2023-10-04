@@ -21,8 +21,7 @@ keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
 df_franchises = pd.DataFrame(franchises)[keep_cols]
 
 # Get the current rosters
-r = requests.get(url = global_vars.rosters_URL, headers={'Authorization': 'Bearer ' + site_token }) 
-rosters = r.json()
+rosters = api_calls.get_rosters()
 keep_cols = ["mfl_id", "franchise_name", "salary", "contract_years", "status"]
 rosters_df = pd.DataFrame(rosters)[keep_cols]
 rosters_df['mfl_id'] = rosters_df['mfl_id'].astype(str)

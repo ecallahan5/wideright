@@ -29,7 +29,8 @@ else:
 league_url = 'https://www49.myfantasyleague.com/'+str(league_yr)+'/export?TYPE=league&L=59643&APIKEY=&JSON=1'
 r = requests.get(url = league_url)
 league = r.json()["league"]
-roster_size = int(league["rosterSize"])
+# roster_size = int(league["rosterSize"])
+roster_size = 20
 salary_cap = float(league["salaryCapAmount"])
 contract_cap = 42
 max_contract_yrs = 5
