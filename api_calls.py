@@ -3,6 +3,7 @@ import requests
 import global_vars
 import config
 import datetime
+import pandas as pd
 
 site_token = config.key
 
@@ -38,3 +39,10 @@ def get_rosters():
     r = requests.get(url = global_vars.rosters_URL, headers={'Authorization': 'Bearer ' + site_token })
     rosters = r.json()
     return rosters
+
+@st.cache_data(show_spinner="Getting Probabilites...", ttl=datetime.timedelta(days=1))
+def get_probs():
+    r = requests.get(url = global_vars.probs_URL, headers={'Authorization': 'Bearer ' + site_token , 'Accept': 'application/json'})
+    probs = r.json()[0]
+    probs_df = pd.DataFrame(probs)
+    return probs_df

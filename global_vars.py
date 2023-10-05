@@ -10,11 +10,13 @@ rosters_URL = "https://wideright.app/api/v1/rosters"
 players_URL = 'https://www49.myfantasyleague.com/2023/export?TYPE=players&L=59643&APIKEY=&DETAILS=&SINCE=&PLAYERS=&JSON=1'
 players_URL_wr = 'https://wideright.app/api/v1/players'
 schedule_URL = 'https://wideright.app/api/v1/schedule'
+probs_URL = 'https://wideright.app/api/v1/colab/playoff-model'
 
 #Images
 dollar_icon = "https://icons.veryicon.com/png/o/business/business-icon-2/money-42.png"
 contract_icon = "https://cdn-icons-png.flaticon.com/512/126/126249.png"
 player_icon = "https://cdn-icons-png.flaticon.com/512/164/164457.png"
+coming_soon = "https://media.istockphoto.com/id/1410983127/vector/under-construction-sign-and-label.jpg?s=612x612&w=0&k=20&c=8Ft81am5L7o1AAZ7SDPn3gi51ur_7cfrlU2au4_bptM="
 
 #League Year
 cur_month = datetime.now().month
