@@ -50,18 +50,10 @@ picks_clean = picks_df.drop(["id", "originalPickFor"], axis = 1).rename(columns=
 #Table style
 st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 
-# Page Grid layout
-def make_grid(cols,rows):
-    grid = [0]*cols
-    for i in range(cols):
-        with st.container():
-            grid[i] = st.columns(rows)
-    return grid
-
 grid_row_count = 6
 grid_col_count = 2
 
-mygrid = make_grid(grid_row_count,grid_col_count)
+mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
 
 # Populating the grid with data
 id_list = df_franchises["mfl_id"].unique()
