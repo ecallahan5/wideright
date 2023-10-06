@@ -16,7 +16,7 @@ keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
 df_franchises = pd.DataFrame(franchises)[keep_cols]
 
 team = st.selectbox(
-    'Which Team is Extending a Player?', [""] + sorted(df_franchises["franchise_name"].unique()))
+    '**Which Team is Extending a Player?**', [""] + sorted(df_franchises["franchise_name"].unique()))
 
 # Get the current rosters
 rosters = api_calls.get_rosters()
@@ -37,7 +37,7 @@ players_df1['position_order'] = players_df1['position'].map(global_vars.sort_map
 filtered_df = players_df1.loc[(players_df1["franchise_name"] == team) & ((players_df1["contract_years"]) == 1)]
 filtered_df = filtered_df.rename(columns={"first_name": "First Name", "last_name": "Last Name","position": "Position", "salary": "Salary "}).sort_values('position_order')
 
-st.write("Here is who is eligible to be extended")
+st.write("**Here is who is eligible to be extended**")
 # Table style
 hide_table_row_index = """
             <style>

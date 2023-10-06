@@ -36,11 +36,11 @@ st.write("See you in 2024!")
 # rosters_df = pd.DataFrame(rosters)[keep_cols]
 # rosters_df['mfl_id'] = rosters_df['mfl_id'].astype(str)
 
-# # Get player metadata
-# r = requests.get(url = global_vars.players_URL) 
-# players = r.json()["players"]["player"]
-# keep_cols = ["position", "id", "name"]
+# Get player metadata
+# players = api_calls.get_players_wr()
+# keep_cols = ["position", "mfl_id", "first_name", "last_name"]
 # players_df = pd.DataFrame(players)[keep_cols]
+# players_df["mfl_id"] = players_df["mfl_id"].astype(str)
 
 # # Join player dfs
 # players_df1 = rosters_df.merge(players_df, how = 'left', left_on = 'mfl_id', right_on = 'id').drop(['id'], axis=1)

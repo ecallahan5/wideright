@@ -11,6 +11,7 @@ players_URL = 'https://www49.myfantasyleague.com/2023/export?TYPE=players&L=5964
 players_URL_wr = 'https://wideright.app/api/v1/players'
 schedule_URL = 'https://wideright.app/api/v1/schedule'
 probs_URL = 'https://wideright.app/api/v1/colab/playoff-model'
+standings_URL = "https://wideright.app/api/v1/standings"
 
 #Images
 dollar_icon = "https://icons.veryicon.com/png/o/business/business-icon-2/money-42.png"

@@ -40,13 +40,13 @@ col1, col2 = st.columns(2)
 with col1:
     # Team picker
     team = st.selectbox(
-        ' Choose a team',
+        '**Choose a team**',
         sorted(players_df1["franchise_name"].unique()))
     
 with col2:
     # Year Picker
         year = st.selectbox(
-        'Choose a league year',
+        '**Choose a league year**',
         global_vars.yr_list)
 
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
@@ -67,6 +67,7 @@ hide_table_row_index = """
             """
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
 table_cols = ["First Name", "Last Name", "Position", "Salary"]
+st.subheader("Rosters")
 st.dataframe(filtered_df[table_cols], use_container_width=True, hide_index=True)
 
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
@@ -82,16 +83,19 @@ roster_spots_free = global_vars.roster_size - roster_spots_used
 col1, col2, col3, col4, col5 = st.columns(5)
 
 #Cap Dollars
+col1.subheader("Salary Cap")
 col1.image(global_vars.dollar_icon)
 col1.metric("Cap Used", cap_used)
 col1.metric("Cap Space", cap_space)
 
 # Contract Years
+col3.subheader("Contracts")
 col3.image(global_vars.contract_icon)
 col3.metric("Contract Years Used", contract_yrs_used)
 col3.metric("Contract Years Free", contract_yrs_free)
 
 #Roster Spots
+col5.subheader("Roster Spots")
 col5.image(global_vars.player_icon)
 col5.metric("Roster Spots Used", roster_spots_used)
 col5.metric("Roster Spots Free", roster_spots_free)

@@ -46,3 +46,17 @@ def get_probs():
     probs = r.json()[0]
     probs_df = pd.DataFrame(probs)
     return probs_df
+
+@st.cache_data(show_spinner="Getting Standings...", ttl=datetime.timedelta(days=1))
+def get_standings():
+    r = requests.get(url = global_vars.standings_URL, headers={'Authorization': 'Bearer ' + site_token , 'Accept': 'application/json'})
+    data = r.json()
+    vals = list(data.values())
+    exclude = ["id", "updated_at"]
+    df = pd.DataFrame.from_records(vals[0], exclude = exclude)
+    standings = df.sort_values(by = ["franchise_division", "wins"], ascending= [True, False])
+    cols_to_float = ['wins', 'losses', 'division_wins', 'division_losses', 'after_week']
+    for col in cols_to_float:
+        standings[col] = standings[col].apply(lambda x: int(x))
+    latest_wk = (max(standings["after_week"]))
+    return standings, latest_wk
