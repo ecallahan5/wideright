@@ -7,77 +7,71 @@ st.set_page_config(layout="wide")
 st.title("Points Race")
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
-st.image(global_vars.coming_soon)
+# Import Schedules
+schedule = api_calls.get_schedule()
 
-# # Import Schedules
-# schedule = api_calls.get_schedule()
+#Define Current, Next Weeks
+names = global_vars.extract_values(schedule, 'current_week')
+current_wk = round(float(names[0]))
+after_wk = current_wk - 1
 
-# #Define Current, Next Weeks
-# names = global_vars.extract_values(schedule, 'current_week')
-# current_wk = round(float(names[0]))
+# Get Probabilities
+probs_df = api_calls.get_probs()
+keep_cols = ["franchise_id", "top_pts", "week"]
+current_wk_df = probs_df[keep_cols].sort_values(by = 'top_pts', ascending=False)
+current_wk_df["top_pts"] = current_wk_df["top_pts"].astype('float')*100
 
-# # Get Probabilities
-# probs_df = api_calls.get_probs()
-# keep_cols = ["franchise_id", "top_pts"]
-# current_wk_df = probs_df.loc[probs_df["week"] == current_wk][keep_cols].sort_values(by = 'top_pts', ascending=False)
-# current_wk_df["top_pts"] = current_wk_df["top_pts"].astype('float')*100
+# Create Week Selector
+with st.sidebar:
+    wk_list = []
+    for wk in probs_df["week"].unique():
+        wk_list.insert(0,wk)
+    chosen_wk = st.selectbox(
+        'Week Number', (wk_list))
 
-# #Get Standings
-# standings, latest_wk = api_calls.get_standings()
-# keep_cols = ["franchise_id", "points_for"]
-# cur_standings = standings.loc[standings["after_week"] == latest_wk][keep_cols].sort_values(by = 'points_for', ascending=False)
+#Get Standings
+standings, latest_wk = api_calls.get_standings()
+keep_cols = ["franchise_id", "points_for", "current_wk"]
+cur_standings = standings[keep_cols].sort_values(by = 'points_for', ascending=False)
 
-# #Merge DFs
-# merged_df = current_wk_df.merge(cur_standings, how = 'left', on = 'franchise_id')
+#Merge DFs
+merged_df = current_wk_df.merge(cur_standings, how = 'left', left_on = ['franchise_id', 'week'], right_on = ['franchise_id', 'current_wk'])
 
-# # Get the list of teams
-# franchises = api_calls.get_teams()
-# keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
-# df_franchises = pd.DataFrame(franchises)[keep_cols]
+# Get the list of teams
+franchises = api_calls.get_teams()
+keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
+df_franchises = pd.DataFrame(franchises)[keep_cols]
 
-# #Merge DFs
-# keep_cols = ["franchise_name", "top_pts", "points_for", "icon_url"]
-# merged_df1 = merged_df.merge(df_franchises, how = 'left', left_on = 'franchise_id', right_on = 'mfl_id').sort_values(by = 'top_pts', ascending=False)[keep_cols]
-# merged_df1["top_pts"] = merged_df1["top_pts"].apply("{0:.2f}%".format)
+#Merge DFs
+keep_cols = ["franchise_name", "top_pts", "points_for", "icon_url", "current_wk"]
+merged_df1 = merged_df.merge(df_franchises, how = 'left', left_on = 'franchise_id', right_on = 'mfl_id').sort_values(by = 'top_pts', ascending=False)[keep_cols]
+merged_df1["top_pts"] = merged_df1["top_pts"].apply("{0:.2f}%".format)
 
-# col1, col2 = st.columns(2, gap = "large")
+col1, col2 = st.columns(2, gap = "large")
 
-# #Table style
-# st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
+#Table style
+st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 
-# with col1:
-#     st.subheader("Current Points", divider=True)
-#     # Points Table
-#     pts_df = merged_df1[["franchise_name", "points_for"]].rename(columns={"franchise_name": "Team", "points_for": "Total Points"}).sort_values(by = 'Total Points', ascending=False)
-#     st.table(pts_df)
+with col1:
+    st.subheader("Points Total entering Week "+str(chosen_wk), divider=True)
+    # Points Table
+    pts_df = merged_df1.loc[merged_df1["current_wk"] == chosen_wk][["franchise_name", "points_for"]]\
+                            .rename(columns={"franchise_name": "Team", "points_for": "Total Points"})\
+                            .sort_values(by = 'Total Points', ascending=False)
+    st.table(pts_df)
     
-# with col2: 
-#     st.subheader("Projections", divider=True)
-#     # col3, col4 = st.columns(2)
+with col2: 
+    st.subheader("Top 3 Likliest Winners", divider=True)
+    prob_df = merged_df1.loc[merged_df1["current_wk"] == chosen_wk][["franchise_name", "icon_url", "current_wk", "top_pts"]]\
+        .rename(columns={"franchise_name": "Team"})[0:3]
 
-#     # with col3:
-#     #     # Probability Leaders
-#     #     prob_df = merged_df1[["franchise_name", "icon_url"]].rename(columns={"franchise_name": "Team"})[0:3]
-#     #     for team in prob_df["Team"].unique():
-#     #         st.image(prob_df.loc[prob_df["Team"] == team]["icon_url"].values[0])
-#     #         # col3.metric(team, helmet)
-#     #         # helmet
+    grid_row_count = 3
+    grid_col_count = 2
 
-#     # with col4:
-#     #     # Probability Leaders
-#     #     prob_df = merged_df1[["franchise_name", "top_pts"]].rename(columns={"franchise_name": "Team"}).sort_values(by = 'top_pts', ascending=False)[0:3]
-#     #     for team in prob_df["Team"].unique():
-#     #         prob = prob_df.loc[prob_df["Team"] == team]["top_pts"].values[0]
-#     #         col4.metric(team, prob)
-
-#     grid_row_count = 3
-#     grid_col_count = 2
-
-#     mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
-#     for row_num in list(range(grid_row_count)):
-#         for col_num in list(range(grid_col_count)):
-#             mygrid[row_num][col_num].write("Ho")
-
-# with st.sidebar:
-#     week_picker = st.selectbox(
-#     'Week Number', [5,4,3,2])
+    mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
+    for row_num in list(range(grid_row_count)):
+        helmet = prob_df["icon_url"].values[row_num]
+        team = prob_df["Team"].values[row_num]
+        prob = prob_df["top_pts"].values[row_num]
+        mygrid[row_num][0].image(helmet)
+        mygrid[row_num][1].metric(team,prob)

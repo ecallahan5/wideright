@@ -17,7 +17,7 @@ st.set_page_config(layout="wide")
 st.title("Holdouts Voting")
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
-st.write("See you in 2024!")
+st.subheader("See you in 2024!")
 
 # # Load the Google Sheets credentials
 # scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']

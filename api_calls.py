@@ -58,5 +58,6 @@ def get_standings():
     cols_to_float = ['wins', 'losses', 'division_wins', 'division_losses', 'after_week']
     for col in cols_to_float:
         standings[col] = standings[col].apply(lambda x: int(x))
+    standings["current_wk"] = standings["after_week"] + 1
     latest_wk = (max(standings["after_week"]))
     return standings, latest_wk
