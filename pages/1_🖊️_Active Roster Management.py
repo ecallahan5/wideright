@@ -58,14 +58,7 @@ filtered_df['position_order'] = filtered_df['position'].map(global_vars.sort_map
 filtered_df = filtered_df.rename(columns={"first_name": "First Name", "last_name": "Last Name","position": "Position", "salary": "Salary"}).sort_values('position_order')
 
 # Table style
-hide_table_row_index = """
-            <style>
-            thead tr th:first-child {display:none}
-            tr:nth-child(even) {background-color: #f2f2f2;}
-            tbody th {display:none}
-            </style>
-            """
-st.markdown(hide_table_row_index, unsafe_allow_html=True)
+st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 table_cols = ["First Name", "Last Name", "Position", "Salary"]
 st.subheader("Rosters")
 st.dataframe(filtered_df[table_cols], use_container_width=True, hide_index=True)

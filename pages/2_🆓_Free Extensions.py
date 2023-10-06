@@ -39,14 +39,8 @@ filtered_df = filtered_df.rename(columns={"first_name": "First Name", "last_name
 
 st.write("**Here is who is eligible to be extended**")
 # Table style
-hide_table_row_index = """
-            <style>
-            thead tr th:first-child {display:none}
-            tr:nth-child(even) {background-color: #f2f2f2;}
-            tbody th {display:none}
-            </style>
-            """
-st.markdown(hide_table_row_index, unsafe_allow_html=True)
+st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
+
 table_cols = ["First Name", "Last Name", "Position", "Salary "]
 filtered_df["Salary "] = filtered_df["Salary "].apply("${:,.2f}".format)
 st.dataframe(filtered_df[table_cols], use_container_width=True, hide_index=True)

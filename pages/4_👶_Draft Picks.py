@@ -48,12 +48,7 @@ round_select = st.multiselect(
 picks_clean = picks_df.drop(["id", "originalPickFor"], axis = 1).rename(columns={"year": "Year", "round": "Round"}).sort_values(["Year", "Round"])[["Year", "Round"]]
 
 #Table style
-hide_table_row_index = """
-            <style>
-            thead tr th:first-child {display:none}
-            tbody th {display:none}
-            """
-st.markdown(hide_table_row_index, unsafe_allow_html=True)
+st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 
 # Page Grid layout
 def make_grid(cols,rows):

@@ -4,6 +4,7 @@ import requests
 import json
 import config
 import api_calls
+import global_vars
 
 site_token = config.key
 
@@ -128,12 +129,7 @@ for franchise, a in df_team_exclusions.iterrows():
 
 # -------------------------
 #Table style
-hide_table_row_index = """
-            <style>
-            thead tr th:first-child {display:none}
-            tbody th {display:none}
-            """
-st.markdown(hide_table_row_index, unsafe_allow_html=True)
+st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 
 try:
     team_lookup = df_franchises.loc[df_franchises['franchise_name'] == team]["mfl_id"].values[0]
