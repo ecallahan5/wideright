@@ -2,6 +2,8 @@ import streamlit as st
 import api_calls
 import global_vars
 import pandas as pd
+import plotly.express as px
+
 
 st.set_page_config(layout="wide")
 st.title("Points Race")
@@ -79,3 +81,10 @@ with col2:
         wow = prob - lw_prob
         mygrid[row_num][0].image(helmet)
         mygrid[row_num][1].metric(team,"{0:.2f}%".format(prob), "{0:.2f}%".format(wow))
+
+st.subheader("Trends", divider = True)
+merged_df2 = merged_df1.sort_values(by='current_wk')
+fig = px.line(merged_df2, x= "current_wk", y = "top_pts", color = "franchise_name", title = 'Points Title Probability Trends',\
+              labels=dict(top_pts="Probability", franchise_name="Team", current_wk="After Week"), markers = True)
+fig.update_xaxes(dtick=1)
+st.plotly_chart(fig, theme="streamlit", use_container_width=True)
