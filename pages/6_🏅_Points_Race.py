@@ -45,7 +45,7 @@ df_franchises = pd.DataFrame(franchises)[keep_cols]
 #Merge DFs
 keep_cols = ["franchise_name", "top_pts", "points_for", "icon_url", "current_wk"]
 merged_df1 = merged_df.merge(df_franchises, how = 'left', left_on = 'franchise_id', right_on = 'mfl_id').sort_values(by = 'top_pts', ascending=False)[keep_cols]
-merged_df1["top_pts"] = merged_df1["top_pts"].apply("{0:.2f}%".format)
+# merged_df1["top_pts"] = merged_df1["top_pts"].apply("{0:.2f}%".format)
 
 col1, col2 = st.columns(2, gap = "large")
 
@@ -64,14 +64,18 @@ with col2:
     st.subheader("Top 3 Likliest Winners", divider=True)
     prob_df = merged_df1.loc[merged_df1["current_wk"] == chosen_wk][["franchise_name", "icon_url", "current_wk", "top_pts"]]\
         .rename(columns={"franchise_name": "Team"})[0:3]
-
+    lw_prob_df = merged_df1.loc[merged_df1["current_wk"] == chosen_wk - 1][["franchise_name", "icon_url", "current_wk", "top_pts"]]\
+        .rename(columns={"franchise_name": "Team", "top_pts" : "lw_top_pts"}).drop(["icon_url", 'current_wk'], axis = 1)
+    all_prob_df = prob_df.merge(lw_prob_df, how = 'left', on = ["Team"])
     grid_row_count = 3
     grid_col_count = 2
 
     mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
     for row_num in list(range(grid_row_count)):
-        helmet = prob_df["icon_url"].values[row_num]
-        team = prob_df["Team"].values[row_num]
-        prob = prob_df["top_pts"].values[row_num]
+        helmet = all_prob_df["icon_url"].values[row_num]
+        team = all_prob_df["Team"].values[row_num]
+        prob = float(all_prob_df["top_pts"].values[row_num])
+        lw_prob = float(all_prob_df["lw_top_pts"].values[row_num])
+        wow = prob - lw_prob
         mygrid[row_num][0].image(helmet)
-        mygrid[row_num][1].metric(team,prob)
+        mygrid[row_num][1].metric(team,"{0:.2f}%".format(prob), "{0:.2f}%".format(wow))
