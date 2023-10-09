@@ -1,0 +1,14 @@
+name: Upgrade Streamlit
+on: workflow_dispatch
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: upgrading streamlit
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: pip install --upgrade streamlit && sudo supervisorctl restart streamlit && streamlit cache clear
