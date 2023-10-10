@@ -8,7 +8,7 @@ import pandas as pd
 site_token = config.key
 
 # Get the list of teams
-@st.cache_data(show_spinner="Getting Teams...", ttl=datetime.timedelta(days=1))
+# @st.cache_data(show_spinner="Getting Teams...", ttl=datetime.timedelta(days=1))
 def get_teams():
     r = requests.get(url = global_vars.franchises_URL, headers={'Authorization': 'Bearer ' + site_token }) 
     franchises = r.json()
