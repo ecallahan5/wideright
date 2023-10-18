@@ -30,7 +30,7 @@ df_franchises = pd.DataFrame(franchises)[keep_cols]
 # Get Probabilities
 probs_df = api_calls.get_probs()
 keep_cols = ["franchise_id", "proj_wins", "week"]
-current_wk_df = probs_df.loc[probs_df["week"] == 5][keep_cols]
+current_wk_df = probs_df.loc[probs_df["week"] == current_wk][keep_cols]
 current_wk_df["proj_wins"] = round(current_wk_df["proj_wins"].astype('float'),1)
 
 merged_df = df_franchises.merge(current_wk_df, how = 'left', left_on = 'mfl_id', right_on = 'franchise_id').sort_values(by = 'division')
@@ -61,7 +61,7 @@ drop_cols = ["division", "waiver_sort_order", "blind_bid_budget"]
 df_franchises = pd.DataFrame(franchises).drop(drop_cols, axis=1)
 
 drop_cols = ["id", "created_at", "week"]
-current_wk_df = probs_df.loc[probs_df["week"] == 5].drop(drop_cols, axis=1)
+current_wk_df = probs_df.loc[probs_df["week"] == current_wk].drop(drop_cols, axis=1)
 current_wk_df["proj_wins"] = round(current_wk_df["proj_wins"].astype('float'),1)
 
 profiles_df = df_franchises.merge(current_wk_df, how = 'left', left_on = 'mfl_id', right_on = 'franchise_id')
