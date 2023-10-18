@@ -15,6 +15,11 @@ after_wk = current_wk - 1
 
 st.title("Projected Standings After Week "+str(after_wk))
 
+# st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+
+# if st.button("Click Me If This Data Looks Old!"):
+#     st.cache_data.clear()
+
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
 # Get teams
@@ -35,8 +40,6 @@ grid_col_count = 3
 
 mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
 
-# #Table style
-# st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 places_df = pd.DataFrame()
 
 for col_num in list(range(grid_col_count)):

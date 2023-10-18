@@ -94,10 +94,10 @@ names_df = pd.DataFrame([names_dict]).T
 names_df['franchise_id'] = names_df.index
 names_df.columns = ['franchise_name', 'franchise_id']
 
-
 claim_elig1 = claimable_players.merge(rosters, left_on='mfl_id', right_on='mfl_id')
-claim_elig2 = claim_elig1[['mfl_id', 'first_name', 'last_name', 'franchise_name']]
-claim_elig3 = claim_elig2.merge(names_df, left_on = 'franchise_name', right_on = 'franchise_name')
+claim_elig2 = claim_elig1[['mfl_id', 'position', 'first_name', 'last_name', 'franchise_name']]\
+  .rename({'position' : 'Position', 'first_name' : 'First Name', 'last_name' : 'Last Name' , 'franchise_name' : 'Current Team'}, axis = 1)
+claim_elig3 = claim_elig2.merge(names_df, left_on = 'Current Team', right_on = 'franchise_name')
 
 claimables = {}
 
@@ -115,8 +115,9 @@ try:
     team_lookup = df_franchises.loc[df_franchises['franchise_name'] == team]["mfl_id"].values[0]
     # st.write(claimables[str(team_lookup)])
     team_claimables = claimables[str(team_lookup)]
-    st.write("Players eligible to be claimed")
-    st.table(claim_elig2.loc[claim_elig2["mfl_id"].isin(team_claimables)].drop(["mfl_id"], axis = 1))
+    st.header("Players eligible to be claimed")
+    st.dataframe(claim_elig2.loc[claim_elig2["mfl_id"].isin(team_claimables)].drop(["mfl_id"], axis = 1),
+                  hide_index=True, use_container_width = True)
 except:
     st.write("Please select a team above")
 

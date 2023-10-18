@@ -61,3 +61,10 @@ def get_standings():
     standings["current_wk"] = standings["after_week"] + 1
     latest_wk = (max(standings["after_week"]))
     return standings, latest_wk
+
+@st.cache_data(show_spinner="Getting Dates...", ttl=datetime.timedelta(days=7))
+def get_dates():
+    r = requests.get(url = global_vars.calendar_URL, headers={'Authorization': 'Bearer ' + site_token})
+    dates = r.json()["calendar"]["event"]
+    dates_df = pd.DataFrame(dates)
+    return dates_df

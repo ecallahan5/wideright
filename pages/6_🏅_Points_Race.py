@@ -9,6 +9,11 @@ st.set_page_config(layout="wide")
 st.title("Points Race")
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
+# if st.button("Click Me If This Data Looks Old!"):
+#     st.cache_data.clear()
+
+# st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+
 # Import Schedules
 schedule = api_calls.get_schedule()
 
