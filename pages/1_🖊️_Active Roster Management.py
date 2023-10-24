@@ -23,6 +23,7 @@ df_franchises = pd.DataFrame(franchises)[keep_cols]
 rosters = api_calls.get_rosters()
 keep_cols = ["mfl_id", "franchise_name", "salary", "contract_years", "status"]
 rosters_df = pd.DataFrame(rosters)[keep_cols]
+rosters_df = rosters_df.loc[rosters_df["status"] != 'TAXI_SQUAD']
 rosters_df['mfl_id'] = rosters_df['mfl_id'].astype(str)
 
 # Get player metadata
