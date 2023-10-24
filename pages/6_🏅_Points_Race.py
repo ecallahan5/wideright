@@ -52,20 +52,21 @@ df_franchises = pd.DataFrame(franchises)[keep_cols]
 #Merge DFs
 keep_cols = ["franchise_name", "top_pts", "points_for", "icon_url", "current_wk"]
 merged_df1 = merged_df.merge(df_franchises, how = 'left', left_on = 'franchise_id', right_on = 'mfl_id').sort_values(by = 'top_pts', ascending=False)[keep_cols]
-# merged_df1["top_pts"] = merged_df1["top_pts"].apply("{0:.2f}%".format)
+# Remove commas and convert "points_for" to a numeric value
+merged_df1["points_for"] = merged_df1["points_for"].str.replace(',', '').astype(float)
+# Sort the DataFrame by the "points_for" column in descending order
+merged_df1 = merged_df1.sort_values(by="points_for", ascending=False)
+# Apply formatting with thousands separator to the "points_for" column
+merged_df1["points_for"] = merged_df1["points_for"].apply(lambda x: "{:,.2f}".format(x))
 
 col1, col2 = st.columns(2, gap = "large")
-
-#Table style
-st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 
 with col1:
     st.subheader("Points Total entering Week "+str(chosen_wk), divider=True)
     # Points Table
     pts_df = merged_df1.loc[merged_df1["current_wk"] == chosen_wk][["franchise_name", "points_for"]]\
-                            .rename(columns={"franchise_name": "Team", "points_for": "Total Points"})\
-                            .sort_values(by = 'Total Points', ascending=False)
-    st.table(pts_df)
+                            .rename(columns={"franchise_name": "Team", "points_for": "Total Points"})
+    st.dataframe(pts_df, hide_index=True, use_container_width = True)
     
 with col2: 
     st.subheader("Top 3 Likliest Winners", divider=True)
