@@ -24,6 +24,8 @@ coming_soon = "https://media.istockphoto.com/id/1410983127/vector/under-construc
 #League Year
 cur_month = datetime.now().month
 cur_yr = datetime.now().year
+trade_dl = '2023-11-23'
+taxi_dl = '2023-11-16'
 
 if cur_month > 2:
     league_yr = cur_yr
