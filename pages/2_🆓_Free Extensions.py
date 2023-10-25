@@ -6,6 +6,7 @@ import config
 import api_calls
 import global_vars
 
+
 st.set_page_config(layout="wide")
 st.title("Annual Free Extension Eligibility")
 st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
@@ -22,6 +23,7 @@ team = st.selectbox(
 rosters = api_calls.get_rosters()
 keep_cols = ["mfl_id", "franchise_name", "salary", "contract_years", "status"]
 rosters_df = pd.DataFrame(rosters)[keep_cols]
+rosters_df = rosters_df.loc[rosters_df["status"] != 'TAXI_SQUAD']
 rosters_df['mfl_id'] = rosters_df['mfl_id'].astype(str)
 
 # Get player metadata
@@ -30,20 +32,52 @@ keep_cols = ["position", "mfl_id", "first_name", "last_name"]
 players_df = pd.DataFrame(players)[keep_cols]
 players_df["mfl_id"] = players_df["mfl_id"].astype(str)
 
-# Join player dfs
-players_df1 = rosters_df.merge(players_df, how = 'left', on = 'mfl_id')
 
-players_df1['position_order'] = players_df1['position'].map(global_vars.sort_mapping['index'])
-filtered_df = players_df1.loc[(players_df1["franchise_name"] == team) & ((players_df1["contract_years"]) == 1)]
-filtered_df = filtered_df.rename(columns={"first_name": "First Name", "last_name": "Last Name","position": "Position", "salary": "Salary "}).sort_values('position_order')
+try:
+    # Join player dfs
+    players_df1 = rosters_df.merge(players_df, how = 'left', on = 'mfl_id')
+    players_df1['position_order'] = players_df1['position'].map(global_vars.sort_mapping['index'])
+    filtered_df = players_df1.loc[(players_df1["franchise_name"] == team) & ((players_df1["contract_years"]) == 1)]
+    filtered_df = filtered_df.rename(columns={"first_name": "First Name", "last_name": "Last Name","position": "Position", "salary": "Salary"}).sort_values('position_order')
+    table_cols = ["First Name", "Last Name", "Position", "Salary "]
+    filtered_df["Salary"] = filtered_df["Salary"].apply("${:,.2f}".format)
 
-st.write("**Here is who is eligible to be extended**")
-# Table style
-st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
+    player = st.radio("Here is who is eligible to be extended", filtered_df["First Name"] + " " + filtered_df["Last Name"] + " - " + filtered_df["Position"],\
+            captions = filtered_df["Salary"])
 
-table_cols = ["First Name", "Last Name", "Position", "Salary "]
-filtered_df["Salary "] = filtered_df["Salary "].apply("${:,.2f}".format)
-st.dataframe(filtered_df[table_cols], use_container_width=True, hide_index=True)
+    st.divider()
+    selected_salary = filtered_df.loc[filtered_df["First Name"] + " " + filtered_df["Last Name"] + " - " + filtered_df["Position"] == player]["Salary"].values[0]
 
+    def calculate_updated_value(selected_salary, constant):
+        # Get the value from the specified column
+        value_str = selected_salary
+        
+        # Remove the dollar sign if it exists
+        value_str = value_str.replace('$', '')
 
+        try:
+            # Convert the modified string to a float
+            value = float(value_str)
+            
+            # Calculate the updated value
+            updated_value = value * constant
 
+            # Format the updated value as USD currency
+            formatted_value = updated_value = f"${updated_value:.2f}"
+
+            return formatted_value
+        except ValueError:
+            return None  
+
+    st.subheader("Extension Options for "+str(player) )
+    col1, col2, col3 = st.columns(3, gap = "large")
+
+    with col1:
+        st.metric("1 Year", calculate_updated_value(selected_salary, 1.15))
+    with col2:
+        st.metric("2 Year", calculate_updated_value(selected_salary, 1.30))
+    with col3:    
+        st.metric("3 Year", calculate_updated_value(selected_salary, 1.45))
+
+except:
+    st.write("Please select a team above")        
