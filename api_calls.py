@@ -68,3 +68,10 @@ def get_dates():
     dates = r.json()["calendar"]["event"]
     dates_df = pd.DataFrame(dates)
     return dates_df
+
+@st.cache_data(show_spinner="Getting Extensions...", ttl=datetime.timedelta(days=7))
+def get_extensions():
+    r = requests.get(url = global_vars.extensions_url, headers={'Authorization': 'Bearer ' + site_token})
+    extensions = r.json()
+    extensions_df = pd.DataFrame(extensions)
+    return extensions_df
