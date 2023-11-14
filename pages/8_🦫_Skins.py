@@ -52,7 +52,7 @@ for week in range(1,current_wk):
         winnings = 0
     wk_df = pd.DataFrame({"Week" : week, "Winner": skins_winner, "Winnings": winnings , "Next Pot" : pot}, index=[0])
     results_df = pd.concat([results_df, wk_df])
-results_df["Winnings"] = results_df["Winnings"].apply("${:,.0f}".format)
+results_df["Winnings"] = results_df["Winnings"]
 results_df["Next Pot"] = results_df["Next Pot"].apply("${:,.0f}".format)
 
 col1, col2 = st.columns(2, gap = "large")
@@ -64,4 +64,6 @@ with col1:
 with col2: 
     st.subheader("Season's Winners", divider=True)
     grouped_winnings = results_df.groupby('Winner').sum().sort_values(by='Winnings', ascending=False).reset_index()
-    grouped_winnings = st.dataframe(grouped_winnings.loc[grouped_winnings['Winner'] != 'None'][["Winner", "Winnings"]], hide_index=True, use_container_width = True)
+    grouped_winnings["Winnings"] = grouped_winnings["Winnings"].apply(lambda x: "${:,.0f}".format(x))
+    grouped_winnings = st.dataframe(grouped_winnings.loc[grouped_winnings['Winner'] != 'None'][["Winner", "Winnings"]] , hide_index=True, use_container_width = True)
+    
