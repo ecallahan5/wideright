@@ -19,11 +19,17 @@ formatted_trade_dl = trade_date.strftime('%B %d, %Y')
 
 # Days Left
 current_date = datetime.now()
-taxi_days_left = (taxi_date - current_date).days
-trade_days_left = (trade_date - current_date).days
+taxi_days_left = (taxi_date - current_date).days +1
+trade_days_left = (trade_date - current_date).days +1
 
+if current_date > taxi_date:
+    st.subheader("Taxi Claims are closed!")
+else:
+    st.subheader("Taxi Claims end on "+str(formatted_taxi_dl))
+    st.caption(str(taxi_days_left)+" days left!")
 
-st.subheader("Taxi Claims end on "+str(formatted_taxi_dl))
-st.caption(str(taxi_days_left)+" days left!")
-st.subheader("Trades and Extensions end on "+str(formatted_trade_dl))
-st.caption(str(trade_days_left)+" days left!")
+if current_date > trade_date:
+    st.subheader("Trades and Extenstions are closed!")
+else:
+    st.subheader("Trades and Extensions end on "+str(formatted_trade_dl))
+    st.caption(str(trade_days_left)+" days left!")
