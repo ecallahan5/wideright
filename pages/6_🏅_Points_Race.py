@@ -65,7 +65,7 @@ with col1:
 with col2: 
     st.subheader("Top 3 Likliest Winners", divider=True)
     prob_df = merged_df1.loc[merged_df1["current_wk"] == chosen_wk][["franchise_name", "icon_url", "current_wk", "top_pts"]]\
-        .rename(columns={"franchise_name": "Team"})[0:3]
+        .rename(columns={"franchise_name": "Team"}).sort_values(by="top_pts", ascending=False)[0:3]
     lw_prob_df = merged_df1.loc[merged_df1["current_wk"] == chosen_wk - 1][["franchise_name", "icon_url", "current_wk", "top_pts"]]\
         .rename(columns={"franchise_name": "Team", "top_pts" : "lw_top_pts"}).drop(["icon_url", 'current_wk'], axis = 1)
     all_prob_df = prob_df.merge(lw_prob_df, how = 'left', on = ["Team"])
