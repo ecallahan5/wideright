@@ -5,10 +5,10 @@ import requests
 import json
 import config
 import global_vars
-from google.oauth2 import service_account
+# from google.oauth2 import service_account
 # from gsheetsdb import connect
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+# import gspread
+# from oauth2client.service_account import ServiceAccountCredentials
 
 
 site_token = config.key

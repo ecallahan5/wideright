@@ -15,7 +15,7 @@ st.subheader("Regular Season Standings", divider=True)
 reg_season = pd.DataFrame({
      'Event': ["Left Upright Winner", "Crossbar Winner", "Right Upright Winner", "Wild Card 1", "Wild Card 2", "Wild Card 3", ],
      'Payout': ["50", "50", "50", "30", "30", "30"],
-     'Winner' : ["Brooklyn Big Blue", "", "The Uncaught Exceptions", "", "", ""]
+     'Winner' : ["Brooklyn Big Blue", "The Van Buren Boys", "The Uncaught Exceptions", "Maize 'N Blue", "Moneyballers", "The Gurley Tates"]
      })
 st.dataframe(reg_season, hide_index=True, use_container_width = True)
 
@@ -31,9 +31,9 @@ st.dataframe(playoffs, hide_index=True, use_container_width = True)
 st.subheader("Extras", divider=True)
 
 extras = pd.DataFrame({
-     'Event': ["WCP Winner", "Points Title",],
-     'Payout': ["50", "60", ],
-     'Winner' : [ "", "", ]
+     'Event': ["WCP Winner (tie)", "WCP Winner (tie)", "Points Title",],
+     'Payout': ["25", "25", "60", ],
+     'Winner' : [ "The Uncaught Exceptions", "Moneyballers", "Brooklyn Big Blue", ]
      })
 st.dataframe(extras, hide_index=True, use_container_width = True)
 
@@ -86,11 +86,15 @@ col1, col2 = st.columns(2, gap = "large")
 
 with col1:
     st.subheader("Current Skins Pot", divider=True)
-    st.metric("Week "+str(current_wk), "${:,.0f}".format(pot))
+    st.write("See you in 2024!")
+    # Need to figure out how to handle Week 14 ...
+    # st.metric("Week "+str(current_wk), "${:,.0f}".format(pot))
     
 with col2: 
     st.subheader("Season's Skins Winners", divider=True)
     grouped_winnings = results_df.groupby('Winner').sum().sort_values(by='Winnings', ascending=False).reset_index()
+    final_skin = {'Winner': 'Cromarties Bastards', 'Week': '14','Winnings': 15}
+    grouped_winnings = grouped_winnings.append(final_skin, ignore_index=True)
     grouped_winnings["Winnings"] = grouped_winnings["Winnings"].apply(lambda x: "${:,.0f}".format(x))
     grouped_winnings = st.dataframe(grouped_winnings.loc[grouped_winnings['Winner'] != 'None'][["Winner", "Winnings"]] , hide_index=True, use_container_width = True)
     
