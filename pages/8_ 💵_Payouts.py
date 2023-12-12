@@ -94,7 +94,8 @@ with col2:
     st.subheader("Season's Skins Winners", divider=True)
     grouped_winnings = results_df.groupby('Winner').sum().sort_values(by='Winnings', ascending=False).reset_index()
     final_skin = {'Winner': 'Cromarties Bastards', 'Week': '14','Winnings': 15}
-    grouped_winnings = grouped_winnings.append(final_skin, ignore_index=True)
+    # grouped_winnings = grouped_winnings.append(final_skin, ignore_index=True)
+    grouped_winnings = pd.concat([grouped_winnings, pd.DataFrame([final_skin])], ignore_index=True)
     grouped_winnings["Winnings"] = grouped_winnings["Winnings"].apply(lambda x: "${:,.0f}".format(x))
     grouped_winnings = st.dataframe(grouped_winnings.loc[grouped_winnings['Winner'] != 'None'][["Winner", "Winnings"]] , hide_index=True, use_container_width = True)
     
