@@ -33,10 +33,10 @@ df_franchises = pd.DataFrame(franchises)[keep_cols]
 
 champ_df = pd.DataFrame(
 
-     [{"seed": 4,"franchise_id":"0007","Champ":0.084,"Runner-Up":0.2184,"3rd place":0.1918},
-     {"seed": 3,"franchise_id":"0002","Champ":0.3057,"Runner-Up":0.2245,"3rd place":0.3042},
-     {"seed": 1,"franchise_id":"0006","Champ":0.3453,"Runner-Up":0.3523,"3rd place":0.1502},
-     {"seed": 2,"franchise_id":"0001","Champ":0.265,"Runner-Up":0.2048,"3rd place":0.3538}]
+     [{"seed": 4,"franchise_id":"0007","Champ":0.2346,"Runner-Up":0.7654,"3rd place":0},
+     {"seed": 3,"franchise_id":"0002","Champ":0,"Runner-Up":0,"3rd place":0.4471},
+     {"seed": 1,"franchise_id":"0006","Champ":0.7654,"Runner-Up":0.2346,"3rd place":0},
+     {"seed": 2,"franchise_id":"0001","Champ":0,"Runner-Up":0,"3rd place":0.5529}]
  )
 
 champ_df = champ_df.merge(df_franchises, left_on = 'franchise_id', right_on = 'mfl_id')
@@ -47,11 +47,11 @@ with st.expander("Click for Previews"):
      with st.container(border = True):
           col1, col2, col3, col4, col5 = st.columns(5)
           col1.metric("Maize \'N Blue", "#4")
-          col2.metric('Win %', "30%")
+          col2.metric('Win %', "23%")
           col3.write("Prediction")
-          col3.image(champ_df.loc[champ_df["seed"] == 1]["icon_url"].values[0])
-          col4.metric('Win %', "70%")
-          col5.metric("The Van Buren Boys", "#1")
+          col3.image(champ_df.loc[champ_df["seed"] == 2]["icon_url"].values[0])
+          col4.metric('Win %', "77%")
+          col5.metric("The Uncaught Exceptions", "#2")
      with st.container(border = True):
           col1, col2, col3, col4, col5= st.columns(5)
           col1.metric("Brooklyn Big Blue", "#3")
@@ -59,7 +59,7 @@ with st.expander("Click for Previews"):
           col3.write("Prediction")
           col3.image(champ_df.loc[champ_df["seed"] == 3]["icon_url"].values[0])
           col4.metric('Win %', "47%")
-          col5.metric("The Uncaught Exceptions", "#2")
+          col5.metric("The Van Buren Boys", "#1")
 st.divider()
 # # Page Grid layout
 # def make_custom_grid(cols,rows):
@@ -117,6 +117,10 @@ with st.expander("Click for Bracket"):
 
      with col3:    
           st.subheader("Finals", divider = True)
+          with st.container(border = True):
+               st.image(champ_df.loc[champ_df["seed"] == 4]["icon_url"].values[0])
+          with st.container(border = True):
+               st.image(champ_df.loc[champ_df["seed"] == 2]["icon_url"].values[0])
 
 
 st.divider()
@@ -131,10 +135,10 @@ st.header("Consolation Bracket", divider=True)
 
 cons_df = pd.DataFrame(
 
-[{"seed": 4,"franchise_id":"0010","Extra Pick":0.1786},
- {"seed": 6,"franchise_id":"0005","Extra Pick":0.2241},
- {"seed": 1,"franchise_id":"0012","Extra Pick":0.3263},
- {"seed": 2,"franchise_id":"0003","Extra Pick":0.271}]
+[{"seed": 4,"franchise_id":"0010","Extra Pick":0},
+ {"seed": 6,"franchise_id":"0005","Extra Pick":0},
+ {"seed": 1,"franchise_id":"0012","Extra Pick":0.5169},
+ {"seed": 2,"franchise_id":"0003","Extra Pick":0.4831}]
 )
 
 cons_df = cons_df.merge(df_franchises, left_on = 'franchise_id', right_on = 'mfl_id')
@@ -174,6 +178,10 @@ with st.expander("Click for Bracket"):
                st.image(cons_df.loc[cons_df["seed"] == 1]["icon_url"].values[0])
      with col3:    
           st.subheader("Finals", divider = True)
+          with st.container(border = True):
+               st.image(cons_df.loc[cons_df["seed"] == 2]["icon_url"].values[0])
+          with st.container(border = True):
+               st.image(cons_df.loc[cons_df["seed"] == 1]["icon_url"].values[0])
 
 
 st.divider()

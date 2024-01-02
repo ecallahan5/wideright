@@ -24,7 +24,7 @@ st.subheader("Playoff Results", divider=True)
 playoffs = pd.DataFrame({
      'Event': [ "League Champ", "League Runner-up", "League 3rd Place"],
      'Payout': ["335", "160", "65"],
-     'Winner' : ["", "", ""]
+     'Winner' : ["The Uncaught Exceptions", "Maize 'N Blue", "The Van Buren Boys"]
      })
 st.dataframe(playoffs, hide_index=True, use_container_width = True)
 
