@@ -26,4 +26,4 @@ jobs:
         run: pip install dlt
 
       - name: Get Dummy Output
-        run: dlt
+        run: dlt --version
