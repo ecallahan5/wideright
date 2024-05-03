@@ -1,0 +1,18 @@
+name: Update Players in BigQuery from DLT
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Repository
+        uses: actions/checkout@4
+
+      - name: Install DLT
+        run: pip install dlt
+
+      - name: Get Dummy Output
+        run: dlt
