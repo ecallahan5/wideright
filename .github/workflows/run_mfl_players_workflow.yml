@@ -34,5 +34,7 @@ jobs:
         python-version: 3.10.x
     - name: Install Requirements
       run: pip install -r requirements_github_action.txt
+    - name: List DLT directory contents
+      run: ls ./.dlt
     - name: Run pipeline script
       run: python 'players.py'
