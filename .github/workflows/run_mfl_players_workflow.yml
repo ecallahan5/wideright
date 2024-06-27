@@ -6,9 +6,9 @@ on:
   workflow_dispatch: null
 
 env:
-  DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
-  DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL: mfl-orchestrator@mfl-374514.iam.gserviceaccount.com
-  DESTINATION__BIGQUERY__LOCATION: US
+  DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: "mfl-374514"
+  DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL: "mfl-orchestrator@mfl-374514.iam.gserviceaccount.com"
+  DESTINATION__BIGQUERY__LOCATION: "US"
   API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
 
 jobs:
@@ -50,7 +50,7 @@ jobs:
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_credentials.json" >> $GITHUB_ENV
 
       - name: Debug GCP Credentials
-        run: cat $HOME/gcp_credentials.json
+        # run: cat $HOME/gcp_credentials.json
 
       - name: Run pipeline script
         run: python 'players.py'
