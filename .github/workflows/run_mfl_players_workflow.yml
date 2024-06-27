@@ -37,19 +37,14 @@ jobs:
         with:
           python-version: 3.10.x
 
-      - uses: syphar/restore-virtualenv@v1
-        id: cache-virtualenv
-        with:
-          requirement_files: requirements_github_action.txt
-
-      - uses: syphar/restore-pip-download-cache@v1
-        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
-
-      - run: pip install -r requirements_github_action.txt
-        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+      - name: Install dependencies
+        run: pip install -r requirements_github_action.txt
 
       - name: Configure GCP Credentials
-        run: echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials.json
+        run: |
+          echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials.json
+          export PRIVATE_KEY=$(jq -r '.private_key' $HOME/gcp_credentials.json)
+          echo "DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY=${PRIVATE_KEY}" >> $GITHUB_ENV
 
       - name: Set environment variables
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_credentials.json" >> $GITHUB_ENV
