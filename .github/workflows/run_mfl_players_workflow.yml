@@ -42,7 +42,7 @@ jobs:
 
       - name: Configure GCP Credentials
         run: |
-          echo "${{ secrets.GCP_CREDENTIALS }}" | base64 --decode > $HOME/gcp_credentials.json
+          echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials.json
 
       - name: Set environment variables
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_credentials.json" >> $GITHUB_ENV
