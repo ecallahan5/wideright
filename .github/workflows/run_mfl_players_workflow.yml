@@ -42,9 +42,16 @@ jobs:
 
       - name: Configure GCP Credentials
         run: |
-          echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials_template.json
-          sed "s|\"private_key\": \"\"|\"private_key\": \"${{ secrets.GCP_PRIVATE_KEY }}\"|" $HOME/gcp_credentials_template.json > $HOME/gcp_credentials.json
-          echo "Content of gcp_credentials.json:"
+          echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials.json
+          echo "Content of gcp_credentials.json before modification:"
+          cat $HOME/gcp_credentials.json
+
+          # Modify the JSON directly
+          echo "${{ secrets.GCP_PRIVATE_KEY }}" | tr -d '\n' > $HOME/private_key.txt
+          jq --arg key "$(cat $HOME/private_key.txt)" '.private_key = $key' $HOME/gcp_credentials.json > $HOME/gcp_credentials_final.json
+          mv $HOME/gcp_credentials_final.json $HOME/gcp_credentials.json
+
+          echo "Content of gcp_credentials.json after modification:"
           cat $HOME/gcp_credentials.json
 
       - name: Set environment variables
