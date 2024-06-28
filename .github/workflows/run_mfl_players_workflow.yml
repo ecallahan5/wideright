@@ -43,7 +43,11 @@ jobs:
       - name: Configure GCP Credentials
         run: |
           echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials.json
+          echo "Content of gcp_credentials.json:"
+          cat $HOME/gcp_credentials.json
           export PRIVATE_KEY=$(jq -r '.private_key' $HOME/gcp_credentials.json)
+          echo "Extracted private_key:"
+          echo "$PRIVATE_KEY"
           echo "DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY=${PRIVATE_KEY}" >> $GITHUB_ENV
 
       - name: Set environment variables
