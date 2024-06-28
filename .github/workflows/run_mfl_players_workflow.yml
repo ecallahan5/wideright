@@ -34,5 +34,16 @@ jobs:
         python-version: 3.10.x
     - name: Install Requirements
       run: pip install -r requirements_github_action.txt
+    - name: Debug environment
+      run: |
+        echo "Project ID: $DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID"
+        echo "Client Email: $DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL"
+        echo "Private Key: $DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY"
     - name: Run pipeline script
       run: python 'players.py'
+      env:
+        DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
+        DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL: mfl-orchestrator@mfl-374514.iam.gserviceaccount.com
+        DESTINATION__BIGQUERY__LOCATION: US
+        API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
+        DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY: ${{ secrets.DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY }}
