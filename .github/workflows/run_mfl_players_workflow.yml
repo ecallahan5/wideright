@@ -45,6 +45,12 @@ jobs:
           echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials.json
           echo "Content of gcp_credentials.json:"
           cat $HOME/gcp_credentials.json
+
+          # Validate JSON
+          echo "Validating JSON"
+          cat $HOME/gcp_credentials.json | jq '.'
+
+          # Extract and print private_key
           export PRIVATE_KEY=$(jq -r '.private_key' $HOME/gcp_credentials.json)
           echo "Extracted private_key:"
           echo "$PRIVATE_KEY"
