@@ -9,6 +9,8 @@ env:
   DESTINATION__BIGQUERY__LOCATION: US
   API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
   DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY: ${{ secrets.DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY }}
+  TESTING: 1234\n1234
+  TESTING2: 1234\\n1234
 jobs:
   maybe_skip:
     runs-on: ubuntu-latest
@@ -39,6 +41,9 @@ jobs:
         echo "Project ID: $DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID"
         echo "Client Email: $DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL"
         echo "Private Key: $DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY"
+        echo "Nonexistent: $AAAAA"
+        echo "Testing: $TESTING"
+        echo "Testing 2: $TESTING2"
     - name: Run pipeline script
       run: python 'players.py'
       env:
