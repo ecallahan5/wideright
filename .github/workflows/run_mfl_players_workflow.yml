@@ -42,28 +42,15 @@ jobs:
 
       - name: Configure GCP Credentials
         run: |
-          echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials.json
+          echo "${{ secrets.GCP_CREDENTIALS }}" | jq '.private_key = "${{ secrets.GCP_PRIVATE_KEY }}"' > $HOME/gcp_credentials.json
           echo "Content of gcp_credentials.json:"
           cat $HOME/gcp_credentials.json
-
-          # Validate JSON
-          echo "Validating JSON"
-          cat $HOME/gcp_credentials.json | jq '.'
-
-          # Extract and print private_key
-          export PRIVATE_KEY=$(jq -r '.private_key' $HOME/gcp_credentials.json)
-          echo "Extracted private_key:"
-          echo "$PRIVATE_KEY"
-          echo "DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY=${PRIVATE_KEY}" >> $GITHUB_ENV
 
       - name: Set environment variables
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_credentials.json" >> $GITHUB_ENV
 
       - name: Debug GCP Credentials
         run: cat $HOME/gcp_credentials.json
-
-      - name: Debug Environment Variables
-        run: echo "PRIVATE_KEY=${PRIVATE_KEY}"
 
       - name: Run pipeline script
         run: python 'players.py'
