@@ -44,12 +44,12 @@ jobs:
         run: |
           echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials.json
           
-          # Remove newlines from GCP_PRIVATE_KEY
-          echo "${{ secrets.GCP_PRIVATE_KEY }}" | tr -d '\n' > $HOME/private_key.txt
+          # # Remove newlines from GCP_PRIVATE_KEY
+          # echo "${{ secrets.GCP_PRIVATE_KEY }}" | tr -d '\n' > $HOME/private_key.txt
           
-          # Insert private_key into JSON using jq
-          jq --arg key "$(cat $HOME/private_key.txt)" '.private_key = $key' $HOME/gcp_credentials.json > $HOME/gcp_credentials_final.json
-          mv $HOME/gcp_credentials_final.json $HOME/gcp_credentials.json
+          # # Insert private_key into JSON using jq
+          # jq --arg key "$(cat $HOME/private_key.txt)" '.private_key = $key' $HOME/gcp_credentials.json > $HOME/gcp_credentials_final.json
+          # mv $HOME/gcp_credentials_final.json $HOME/gcp_credentials.json
 
           echo "Content of gcp_credentials.json after modification:"
           cat $HOME/gcp_credentials.json
