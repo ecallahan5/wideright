@@ -50,7 +50,7 @@ jobs:
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
 
       - name: Debug Environment Variables
-        run: echo $DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY | base64 -d | jq -R 'split("\n")'
+        run: echo $DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY 
 
       - name: Create GCP Credentials File
         run: |
