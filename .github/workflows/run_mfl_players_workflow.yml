@@ -10,7 +10,6 @@ env:
   DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL: mfl-orchestrator@mfl-374514.iam.gserviceaccount.com
   DESTINATION__BIGQUERY__LOCATION: US
   API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
-  DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY: ${{ secrets.GCP_PRIVATE_KEY }}
 
 jobs:
   maybe_skip:
@@ -52,10 +51,8 @@ jobs:
       - name: Debug Environment Variables
         run: echo $DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY 
 
-      # - name: Create GCP Credentials File
-      #   run: |
-      #     echo "{\"type\": \"service_account\", \"project_id\": \"$DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID\", \"private_key_id\": \"\", \"private_key\": \"$DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY\", \"client_email\": \"$DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL\", \"client_id\": \"\", \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\", \"token_uri\": \"https://oauth2.googleapis.com/token\", \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\", \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/$DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL\"}" > $HOME/gcp_credentials.json
-      #     cat $HOME/gcp_credentials.json
+      - name: Set up GCP credentials
+        run: echo "$GCP_CREDENTIALS" > $HOME/gcp_credentials.json
 
       - name: Set environment variables
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_credentials.json" >> $GITHUB_ENV
@@ -65,3 +62,4 @@ jobs:
 
       - name: Run pipeline script
         run: python 'players.py'
+
