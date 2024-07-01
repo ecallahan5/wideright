@@ -63,4 +63,5 @@ jobs:
       - name: Debug GCP Credentials
         run: cat $HOME/gcp_credentials.json
 
-      -
+      - name: Run pipeline script
+        run: python 'players.py'
