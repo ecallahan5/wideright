@@ -50,7 +50,10 @@ jobs:
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
 
       - name: Debug Environment Variables
-        run: echo $DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY 
+        run: |
+          echo "DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY: $DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY"
+          echo "API_SECRET_KEY: $API_SECRET_KEY"
+          echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
 
       - name: Set up GCP credentials
         run: echo "$GCP_CREDENTIALS" > $HOME/gcp_credentials.json
@@ -63,4 +66,3 @@ jobs:
 
       - name: Run pipeline script
         run: python 'players.py'
-
