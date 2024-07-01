@@ -42,25 +42,8 @@ jobs:
 
       - name: Configure GCP Credentials
         run: |
-          # Write GCP credentials JSON to a file
           echo "${{ secrets.GCP_CREDENTIALS }}" > $HOME/gcp_credentials.json
-
-          # Validate JSON file before proceeding
-          if ! jq empty $HOME/gcp_credentials.json; then
-            echo "Invalid JSON format in GCP_CREDENTIALS"
-            exit 1
-          fi
-
-          # Insert private_key into JSON using jq
-          jq --arg key "${{ secrets.GCP_PRIVATE_KEY }}" '.private_key = $key' $HOME/gcp_credentials.json > $HOME/gcp_credentials_final.json
-
-          # Validate modified JSON file
-          if ! jq empty $HOME/gcp_credentials_final.json; then
-            echo "Invalid JSON format after inserting private_key"
-            exit 1
-          fi
-          
-          mv $HOME/gcp_credentials_final.json $HOME/gcp_credentials.json
+          sed -i 's/|/\\n/g' $HOME/gcp_credentials.json
 
           echo "Content of gcp_credentials.json after modification:"
           cat $HOME/gcp_credentials.json
