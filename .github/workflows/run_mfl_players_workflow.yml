@@ -50,11 +50,8 @@ jobs:
             exit 1
           fi
 
-          # Save private_key from secrets to a file without newlines
-          echo "${{ secrets.GCP_PRIVATE_KEY }}" | tr -d '\n' > $HOME/private_key.txt
-
-          # Insert private_key into JSON using jq
-          jq --arg key "$(cat $HOME/private_key.txt)" '.private_key = $key' $HOME/gcp_credentials.json > $HOME/gcp_credentials_final.json
+          # Replace placeholder in the JSON file with the private key
+          jq --arg key "${{ secrets.GCP_PRIVATE_KEY }}" '.private_key = $key' $HOME/gcp_credentials.json > $HOME/gcp_credentials_final.json
           
           # Validate modified JSON file
           if ! jq empty $HOME/gcp_credentials_final.json; then
