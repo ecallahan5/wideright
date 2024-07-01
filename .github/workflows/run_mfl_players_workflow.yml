@@ -42,7 +42,7 @@ jobs:
 
       - name: Configure GCP Credentials
         run: |
-          echo "${{ secrets.GCP_CREDENTIALS }}" | tr '|' '\n' > $HOME/gcp_credentials.json
+          echo "${{ secrets.GCP_CREDENTIALS_JSON }}" | base64 -d > $HOME/gcp_credentials.json
           echo "Content of gcp_credentials.json after modification:"
           cat $HOME/gcp_credentials.json
 
