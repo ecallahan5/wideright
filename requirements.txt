@@ -1,1 +1,2 @@
 pandas==1.5.3
+dlt[bigquery]>=0.4.7
