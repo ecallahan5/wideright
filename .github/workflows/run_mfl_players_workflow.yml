@@ -1,7 +1,7 @@
 name: Run mfl_players pipeline from players.py
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Run every 30 minutes
+    - cron: '0 0 * * *'  # Run every 30 minutes
   workflow_dispatch: null
 env:
   DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
