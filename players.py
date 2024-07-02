@@ -4,7 +4,6 @@ from dlt.sources.helpers import requests
 
 @dlt.source
 def sourcename_source(api_secret_key=dlt.secrets.value):
-    print(dlt.secrets.value)
     return sourcename_resource(api_secret_key)
 
 
