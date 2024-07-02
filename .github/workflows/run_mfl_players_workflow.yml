@@ -1,7 +1,7 @@
 name: Run mfl_players pipeline from players.py
 on:
   schedule:
-    - cron: '0 0 * * *'  # Run every 30 minutes
+    - cron: '0 0 * * *'  # Run at midnight every day
   workflow_dispatch: null
 env:
   DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
@@ -20,12 +20,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.10.x
-#      - uses: syphar/restore-virtualenv@v1
-#        id: cache-virtualenv
-#        with:
-#          requirement_files: requirements_github_action.txt
-#      - uses: syphar/restore-pip-download-cache@v1
-#        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+      - uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+        with:
+          requirement_files: requirements_github_action.txt
+      - uses: syphar/restore-pip-download-cache@v1
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
       - run: pip install -r requirements_github_action.txt
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
       - id: 'auth'
