@@ -1,1 +1,5 @@
 dlt[bigquery]>=0.4.7
+toml
+google-api-python-client
+google-cloud-bigquery-storage
+google-cloud-storage
