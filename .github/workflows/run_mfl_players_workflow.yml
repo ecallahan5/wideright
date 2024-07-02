@@ -51,4 +51,4 @@ jobs:
       - name: 'Use gcloud CLI'
         run: 'gcloud info'
       - name: Run pipeline script
-        run: python 'dlt_pipeline.py'
+        run: python 'players.py'
