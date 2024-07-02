@@ -16,7 +16,7 @@ env:
 jobs:
 
   run_pipeline:
-    if: needs.maybe_skip.outputs.should_skip != 'true'
+    # if: needs.maybe_skip.outputs.should_skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -47,8 +47,8 @@ jobs:
       - name: Set up GCP credentials
         run: echo "$GCP_CREDENTIALS" > $HOME/gcp_credentials.json
 
-      - name: Set environment variables
-        run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_credentials.json" >> $GITHUB_ENV
+      # - name: Set environment variables
+      #   run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_credentials.json" >> $GITHUB_ENV
 
       - name: Debug GCP Credentials
         run: cat $HOME/gcp_credentials.json
