@@ -21,7 +21,7 @@ def sourcename_resource(api_secret_key=dlt.secrets.value):
     print(headers)
 
     # make an api call here
-    url = "https://www49.myfantasyleague.com/2024/export?TYPE=players&L=59643&APIKEY=&DETAILS=&SINCE=&PLAYERS=&JSON=1"
+    url = "https://www49.myfantasyleague.com/2024/export?TYPE=futureDraftPicks&L=59643&APIKEY=&JSON=1"
     # response = requests.get(url, headers=headers, params=params)
     response = requests.get(url)
     response.raise_for_status()
@@ -31,7 +31,7 @@ def sourcename_resource(api_secret_key=dlt.secrets.value):
 if __name__ == "__main__":
     # configure the pipeline with your destination details
     pipeline = dlt.pipeline(
-        pipeline_name='mfl_players', destination='bigquery', dataset_name='players'
+        pipeline_name='mfl_draft_picks', destination='bigquery', dataset_name='draft_picks'
     )
 
     # print credentials by running the resource
