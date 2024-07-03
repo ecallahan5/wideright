@@ -36,5 +36,7 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v2'
       - name: 'Use gcloud CLI'
         run: 'gcloud info'
-      - name: Run pipeline script
+      - name: Run players script
         run: python 'dlt/players.py'
+      - name: Run draft picks script
+        run: python 'dlt/draft_picks.py'
