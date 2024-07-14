@@ -40,3 +40,5 @@ jobs:
         run: python 'dlt/players.py'
       - name: Run draft picks script
         run: python 'dlt/draft_picks.py'
+        name: Run league script
+        run: python 'dlt/league.py'
