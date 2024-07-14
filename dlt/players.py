@@ -13,7 +13,7 @@ def _create_auth_headers(api_secret_key):
     return headers
 
 
-@dlt.resource(write_disposition="append")
+@dlt.resource(write_disposition="replace")
 def sourcename_resource(api_secret_key=dlt.secrets.value):
     headers = _create_auth_headers(api_secret_key)
 
