@@ -5,7 +5,7 @@ import requests
 import json
 import config
 import global_vars
-import api_calls
+import functions
 
 st.set_page_config(layout="wide")
 st.title("Payouts")
@@ -38,7 +38,7 @@ extras = pd.DataFrame({
 st.dataframe(extras, hide_index=True, use_container_width = True)
 
 # Import Schedules
-schedule = api_calls.get_schedule()
+schedule = functions.get_schedule()
 results_dict =schedule["matchups_by_week"]
 
 #Define Current, Next Weeks

@@ -4,6 +4,8 @@ import global_vars
 import config
 import datetime
 import pandas as pd
+from google.oauth2 import service_account
+from google.cloud import bigquery
 
 site_token = config.key
 
@@ -75,3 +77,21 @@ def get_extensions():
     extensions = r.json()
     extensions_df = pd.DataFrame(extensions)
     return extensions_df
+
+
+# Create API client.
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"]
+)
+# Create BigQuery client
+client = bigquery.Client(credentials=credentials, project=st.secrets["gcp_service_account"]["project_id"])
+
+# Perform query.
+# Uses st.cache_data to only rerun when the query changes or after 10 min.
+@st.cache_data(show_spinner="Trying to figure out how to beat Kevin...", ttl=datetime.timedelta(days=1))
+def bq_query(query):
+    query_job = client.query(query)
+    rows_raw = query_job.result()
+    # Convert to list of dicts. Required for st.cache_data to hash the return value.
+    rows = [dict(row) for row in rows_raw]
+    return rows

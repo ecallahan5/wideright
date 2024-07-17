@@ -5,7 +5,7 @@ import requests
 import json
 import config
 import global_vars
-import api_calls
+import functions
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -27,7 +27,7 @@ st.title("Playoffs ")
 st.header("Championship Bracket", divider=True)
 
 # Get the list of teams
-franchises = api_calls.get_teams()
+franchises = functions.get_teams()
 keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
 df_franchises = pd.DataFrame(franchises)[keep_cols]
 

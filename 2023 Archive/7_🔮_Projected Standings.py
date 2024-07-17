@@ -1,5 +1,5 @@
 import streamlit as st
-import api_calls
+import functions
 import global_vars
 import pandas as pd
 

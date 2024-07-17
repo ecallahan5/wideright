@@ -3,7 +3,7 @@ import streamlit as st
 import requests
 import json
 import config
-import api_calls
+import functions
 import global_vars
 
 
