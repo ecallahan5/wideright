@@ -50,13 +50,6 @@ for row_num in list(range(grid_row_count)):
 
         i +=1
 
-##################################
-
-# import numpy as np
-# import requests
-# import json
-# import config
-# import api_calls
 
 
 
