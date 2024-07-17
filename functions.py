@@ -6,7 +6,6 @@ import datetime
 import pandas as pd
 from google.oauth2 import service_account
 from google.cloud import bigquery
-import os
 
 site_token = config.key
 
@@ -79,25 +78,13 @@ def get_extensions():
     extensions_df = pd.DataFrame(extensions)
     return extensions_df
 
-# Accessing the secret from environment variables
-credentials_info = json.loads(os.getenv("GCP_CREDENTIALS"))
-st.write("Credentials info loaded")
 
-# Create credentials object
-credentials = service_account.Credentials.from_service_account_info(credentials_info)
-
+# Create API client.
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"]
+)
 # Create BigQuery client
-client = bigquery.Client(credentials=credentials, project=credentials_info["project_id"])
-
-
-
-
-# # Create API client.
-# credentials = service_account.Credentials.from_service_account_info(
-#     secrets["GCP_CREDENTIALS"]
-# )
-# # Create BigQuery client
-# client = bigquery.Client(credentials=credentials, project=st.secrets["gcp_service_account"]["project_id"])
+client = bigquery.Client(credentials=credentials, project=st.secrets["gcp_service_account"]["project_id"])
 
 # Perform query.
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
