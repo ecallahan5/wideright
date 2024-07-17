@@ -80,7 +80,7 @@ def get_extensions():
     return extensions_df
 
 # Accessing the secret from environment variables
-credentials_info = json.loads(os.getenv("GCP_SERVICE_ACCOUNT"))
+credentials_info = json.loads(os.getenv("GCP_CREDENTIALS"))
 
 # Create credentials object
 credentials = service_account.Credentials.from_service_account_info(credentials_info)
