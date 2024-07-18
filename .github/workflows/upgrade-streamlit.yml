@@ -12,7 +12,10 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            pip install --upgrade streamlit
+            pip install --upgrade pip
+            pip install --upgrade google
+            pip install --upgrade google-cloud
+            pip install --upgrade google-cloud-storage
             pip install --upgrade google-cloud-bigquery
             sudo supervisorctl restart streamlit
             streamlit cache clear
