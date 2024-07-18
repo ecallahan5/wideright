@@ -11,4 +11,8 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
-          script: pip install --upgrade streamlit && sudo supervisorctl restart streamlit && streamlit cache clear
+          script: |
+            pip install --upgrade streamlit
+            pip install --upgrade google-cloud-bigquery
+            sudo supervisorctl restart streamlit
+            streamlit cache clear
