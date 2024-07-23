@@ -6,6 +6,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
       - name: pushing changes to wideright.app server
         uses: appleboy/ssh-action@v0.1.8
@@ -14,7 +15,13 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
-          script: cd /home/forge/streamlit && git pull origin main
+          script: |
+            cd /home/forge/streamlit
+            git pull origin main
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
       - name: restarting streamlit and clearing cache
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -22,4 +29,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
-          script: sudo supervisorctl restart streamlit && streamlit cache clear
+          script: |
+            source /home/forge/streamlit/venv/bin/activate
+            sudo supervisorctl restart streamlit
+            streamlit cache clear
