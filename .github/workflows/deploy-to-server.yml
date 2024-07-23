@@ -23,7 +23,6 @@ jobs:
           source: "./requirements.txt"
           target: "/home/forge/streamlit/"
 
-
       - name: pushing changes to wideright.app server
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -38,6 +37,8 @@ jobs:
             source venv/bin/activate
             pip install --upgrade pip
             pip install -r requirements.txt
+            pip install google-cloud-bigquery
+            pip freeze
 
       - name: restarting streamlit and clearing cache
         uses: appleboy/ssh-action@v0.1.8
