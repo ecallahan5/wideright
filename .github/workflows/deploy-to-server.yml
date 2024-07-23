@@ -25,7 +25,7 @@ jobs:
           source: "./requirements.txt"
           target: "/home/forge/streamlit/"
 
-      # Install dependencies globally on the server
+      # Install dependencies globally without sudo
       - name: Install dependencies on the server
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -34,11 +34,9 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S apt-get update
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S apt-get install -y python3-pip
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S pip3 install --upgrade pip
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S pip3 install -r /home/forge/streamlit/requirements.txt
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S pip3 install google-cloud-bigquery
+            pip3 install --upgrade pip
+            pip3 install -r /home/forge/streamlit/requirements.txt
+            pip3 install google-cloud-bigquery
 
       # Pull the latest changes from the repository
       - name: pushing changes to wideright.app server
@@ -61,5 +59,5 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            sudo supervisorctl restart streamlit
+            supervisorctl restart streamlit
             streamlit cache clear
