@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
-          source: "requirements.txt"
+          source: "./requirements.txt"
           target: "/home/forge/streamlit/requirements.txt"
 
       - name: pushing changes to wideright.app server
