@@ -79,6 +79,12 @@ def get_extensions():
     return extensions_df
 
 
+#####################
+
+# How to run functions individually
+# https://docs.streamlit.io/develop/api-reference/execution-flow/st.fragment
+
+
 # Create API client.
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
