@@ -85,15 +85,23 @@ def get_extensions():
 # https://docs.streamlit.io/develop/api-reference/execution-flow/st.fragment
 
 
+# Define the scopes needed for both BigQuery and Google Drive
+SCOPES = [
+    'https://www.googleapis.com/auth/bigquery',
+    'https://www.googleapis.com/auth/drive.readonly',  # Read-only access to Google Drive
+    'https://www.googleapis.com/auth/spreadsheets.readonly'  # Read-only access to Google Sheets
+]
+
 # Create API client.
 credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"]
+    st.secrets["gcp_service_account"], scopes=SCOPES
 )
+
 # Create BigQuery client
 client = bigquery.Client(credentials=credentials, project=st.secrets["gcp_service_account"]["project_id"])
 
 # Perform query.
-# Uses st.cache_data to only rerun when the query changes or after 10 min.
+# Uses st.cache_data to only rerun when the query changes or after 1 day.
 @st.cache_data(show_spinner="Trying to figure out how to beat Kevin...", ttl=datetime.timedelta(days=1))
 def bq_query(query):
     query_job = client.query(query)
