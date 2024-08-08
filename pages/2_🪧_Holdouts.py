@@ -32,22 +32,45 @@ sheet_url = config.holdouts_voting_sheet_url
 franchises = functions.bq_query("SELECT name FROM `mfl-374514.dbt_production.fct_franchises`")
 franchises_df = pd.DataFrame(franchises)
 
-
 # Create the Streamlit form
 def create_form():
     selected_rows = []
-    st.subheader("Who is voting?")
-    team_name = st.selectbox("Team Name", franchises_df)
-    selected_rows.append(team_name)
-    for i in range(5):
-        st.subheader(f"Holdout {i+1}")
-        row_name = st.selectbox(f"Select a Player", [""] + players_df["name"].tolist(), key=f"row_{i}")
-        if row_name != "":
-            selected_row = players_df.loc[players_df["name"] == row_name]["name"].values[0]
-            selected_rows.append(selected_row)
 
-    submit_button = st.button("Submit")
+    # Start the form
+    with st.form("voting_form"):
+        st.subheader("Who is voting?")
+        team_name = st.selectbox("Team Name", franchises_df)
+        selected_rows.append(team_name)
+        
+        for i in range(5):
+            st.subheader(f"Holdout {i+1}")
+            row_name = st.selectbox(f"Select a Player", [""] + players_df["name"].tolist(), key=f"row_{i}")
+            if row_name != "":
+                selected_row = players_df.loc[players_df["name"] == row_name]["name"].values[0]
+                selected_rows.append(selected_row)
+
+        # Submit button inside the form
+        submit_button = st.form_submit_button("Submit")
+
     return selected_rows, submit_button
+
+
+
+# # Create the Streamlit form
+# def create_form():
+#     selected_rows = []
+#     st.subheader("Who is voting?")
+#     team_name = st.selectbox("Team Name", franchises_df)
+#     selected_rows.append(team_name)
+#     for i in range(5):
+#         st.subheader(f"Holdout {i+1}")
+#         row_name = st.selectbox(f"Select a Player", [""] + players_df["name"].tolist(), key=f"row_{i}")
+#         if row_name != "":
+#             selected_row = players_df.loc[players_df["name"] == row_name]["name"].values[0]
+#             selected_rows.append(selected_row)
+
+#     submit_button = st.button("Submit")
+#     return selected_rows, submit_button
 
 # Write the form submission to the Google Sheet
 def write_to_google_sheet(submission):
