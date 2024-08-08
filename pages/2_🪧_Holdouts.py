@@ -18,9 +18,6 @@ st.divider()
 # Get the holdout list picks 
 players = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.fct_holdout_players`")
 players_df = pd.DataFrame(players)
-players_df
-# picks_df[["year", "round_num"]] = picks_df[["year", "round_num"]].apply(pd.to_numeric)
-
 
 # Load the Google Sheets credentials
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
