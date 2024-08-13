@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import streamlit as st
-import requests
 import json
 import plotly.express as px
 import config
@@ -15,29 +14,16 @@ st.divider()
 st.image("https://as2.ftcdn.net/v2/jpg/00/89/02/67/1000_F_89026793_eyw5a7WCQE0y1RHsizu41uhj7YStgvAA.jpg")
 
 
-
-# #####################################
-# # Get the list of teams
-# franchises = functions.get_teams()
-# keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
-# df_franchises = pd.DataFrame(franchises)[keep_cols]
-
 # # Get the current rosters
-# rosters = functions.get_rosters()
-# keep_cols = ["mfl_id", "franchise_name", "salary", "contract_years", "status"]
-# rosters_df = pd.DataFrame(rosters)[keep_cols]
-# rosters_df = rosters_df.loc[rosters_df["status"] != 'TAXI_SQUAD']
-# rosters_df['mfl_id'] = rosters_df['mfl_id'].astype(str)
-
-# # Get player metadata
-# players = functions.get_players_wr()
-# keep_cols = ["position", "mfl_id", "first_name", "last_name"]
-# players_df = pd.DataFrame(players)[keep_cols]
-# players_df["mfl_id"] = players_df["mfl_id"].astype(str)
-
-
-# # Join player dfs
-# players_df1 = rosters_df.merge(players_df, how = 'left', left_on = 'mfl_id', right_on = 'mfl_id')
+# rosters = functions.bq_query("SELECT c.name as franchise_name, a.player_id, contract_year, salary, team, b.name, position  \
+#                               FROM `mfl-374514.dbt_production.fct_rosters` a \
+#                              left join `mfl-374514.dbt_production.fct_players`  b\
+#                              on a.player_id = b.player_id \
+#                              left join mfl-374514.dbt_production.fct_franchises c \
+#                              on a.franchise_id = c.franchise_id\
+#                              where a.status != 'TAXI_SQUAD' ")
+# rosters_df = pd.DataFrame(rosters)
+# rosters_df
 
 # col1, col2 = st.columns(2)
 
@@ -45,7 +31,7 @@ st.image("https://as2.ftcdn.net/v2/jpg/00/89/02/67/1000_F_89026793_eyw5a7WCQE0y1
 #     # Team picker
 #     team = st.selectbox(
 #         '**Choose a team**',
-#         sorted(players_df1["franchise_name"].unique()))
+#         sorted(rosters_df["franchise_name"].unique()))
     
 # with col2:
 #     # Year Picker
@@ -53,7 +39,9 @@ st.image("https://as2.ftcdn.net/v2/jpg/00/89/02/67/1000_F_89026793_eyw5a7WCQE0y1
 #         '**Choose a league year**',
 #         global_vars.yr_list)
 
-# st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+# st.divider()
+
+# #####################################
 
 # contract_yrs = global_vars.zipped_df.loc[global_vars.zipped_df["Year"] == year]["Contract Length"].values[0]
 # filtered_df = players_df1.loc[(players_df1["franchise_name"] == team) & ((players_df1["contract_years"]) >= contract_yrs)]
