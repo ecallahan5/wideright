@@ -12,6 +12,9 @@ picks = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.fct_draft_p
 picks_df = pd.DataFrame(picks)
 picks_df[["year", "round_num", "pick_num"]] = picks_df[["year", "round_num", "pick_num"]].apply(pd.to_numeric, downcast="integer")
 
+# Optionally, fill NaN values if any (you can fill them with 0 or another value, or drop them)
+picks_df["pick_num"] = picks_df["pick_num"].fillna(0).astype(int)
+
 # Get the list of teams
 teams = functions.bq_query("SELECT franchise_id, franchise_name, division, icon FROM `mfl-374514.dbt_production.fct_franchises`")
 teams_df = pd.DataFrame(teams)
