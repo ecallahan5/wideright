@@ -14,10 +14,10 @@ st.divider()
 
 # Get the current rosters
 rosters = functions.bq_query("SELECT c.franchise_name, a.player_id, contract_year, salary, team, b.player_name, position  \
-                              FROM `mfl-374514.dbt_production.fct_rosters` a \
-                             left join `mfl-374514.dbt_production.fct_players`  b\
+                              FROM `mfl-374514.dbt_production.dim_rosters` a \
+                             left join `mfl-374514.dbt_production.dim_players`  b\
                              on a.player_id = b.player_id \
-                             left join mfl-374514.dbt_production.fct_franchises c \
+                             left join mfl-374514.dbt_production.dim_franchises c \
                              on a.franchise_id = c.franchise_id\
                              where a.status != 'TAXI_SQUAD' ")
 rosters_df = pd.DataFrame(rosters)

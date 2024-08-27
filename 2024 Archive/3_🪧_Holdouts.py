@@ -16,7 +16,7 @@ st.divider()
 st.title("2024 Holdout Voting is Closed!")
 
 # # Get the holdout list picks 
-# players = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.fct_holdout_players`")
+# players = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.dim_holdout_players`")
 # players_df = pd.DataFrame(players)
 
 # # Load the Google Sheets credentials
@@ -29,7 +29,7 @@ st.title("2024 Holdout Voting is Closed!")
 # # Define the Google Sheet destination URL 
 # sheet_url = config.holdouts_voting_sheet_url
 
-# franchises = functions.bq_query("SELECT name FROM `mfl-374514.dbt_production.fct_franchises`")
+# franchises = functions.bq_query("SELECT name FROM `mfl-374514.dbt_production.dim_franchises`")
 # franchises_df = pd.DataFrame(franchises)
 
 # # Create the Streamlit form

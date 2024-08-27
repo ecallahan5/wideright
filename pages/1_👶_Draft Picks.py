@@ -8,7 +8,7 @@ st.title("Draft Picks")
 st.divider()
 
 # Get the draft picks 
-picks = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.fct_draft_picks`")
+picks = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.dim_draft_picks`")
 picks_df = pd.DataFrame(picks)
 picks_df[["year", "round_num", "pick_num"]] = picks_df[["year", "round_num", "pick_num"]].apply(pd.to_numeric, downcast="integer")
 
@@ -16,7 +16,7 @@ picks_df[["year", "round_num", "pick_num"]] = picks_df[["year", "round_num", "pi
 picks_df["pick_num"] = picks_df["pick_num"].fillna(0).astype(int)
 
 # Get the list of teams
-teams = functions.bq_query("SELECT franchise_id, franchise_name, division, icon FROM `mfl-374514.dbt_production.fct_franchises`")
+teams = functions.bq_query("SELECT franchise_id, franchise_name, division, icon FROM `mfl-374514.dbt_production.dim_franchises`")
 teams_df = pd.DataFrame(teams)
 
 picks_clean = picks_df.drop(["pick_owner"], axis = 1).rename(columns={"year": "Year", "round_num": "Round", "pick_num": "Pick"}).sort_values(["Year", "Round"])
