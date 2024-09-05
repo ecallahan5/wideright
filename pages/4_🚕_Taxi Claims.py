@@ -12,11 +12,18 @@ st.set_page_config(layout="wide")
 
 st.title("Taxi Claims")
 
+st.image(global_vars.coming_soon)
+
+
+
+# Import Schedules
+
+# schedule = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.dim_schedules`")
+# schedule_df = pd.DataFrame(schedule)
+# schedule_df
+
 ##################################
 
-# # Import Schedules
-schedule = functions.get_schedule()
-schedule
 # #Define Current, Next Weeks
 # names = global_vars.extract_values(schedule, 'current_week')
 # current_wk = round(float(names[0]))
