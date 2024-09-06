@@ -48,3 +48,5 @@ jobs:
         run: python 'dlt/assets.py'
       - name: Run schedule script
         run: python 'dlt/schedule.py'
+      - name: Run scores script
+        run: python 'dlt/scores.py'

@@ -10,27 +10,28 @@ site_token = config.key
 
 st.set_page_config(layout="wide")
 
-st.title("Taxi Claims")
-
 st.image(global_vars.coming_soon)
 
+# Placeholders to fix later
+# https://www49.myfantasyleague.com/2024/export?TYPE=liveScoring&L=59643&APIKEY=ahFi18iVvuWrx1GmPVDHZTEeF7ox&W=&DETAILS=&JSON=0
+current_wk = 1
+next_wk = 2
 
+# st.title("Taxi Claims for Week "+str(current_wk) )
+# st.divider()
 
+# Idiot, make the claim eligibility in the DAG, you giant moron
 # Import Schedules
 
 # schedule = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.dim_schedules`")
 # schedule_df = pd.DataFrame(schedule)
 # schedule_df
-
 ##################################
 
 # #Define Current, Next Weeks
 # names = global_vars.extract_values(schedule, 'current_week')
 # current_wk = round(float(names[0]))
 # next_wk = current_wk + 1
-
-# # st.title("Taxi Claims for Week "+str(current_wk) )
-# st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
 # # with st.chat_message("Norwood", avatar = "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/scott-norwood-1486054177.jpg?crop=1.00xw:0.358xh;0,0.226xh&resize=900:*"):
 # #     st.write("What team are you claming for?")
