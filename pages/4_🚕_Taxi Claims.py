@@ -13,7 +13,7 @@ st.set_page_config(layout="wide")
 st.image(global_vars.coming_soon)
 
 # Placeholders to fix later
-# https://www49.myfantasyleague.com/2024/export?TYPE=liveScoring&L=59643&APIKEY=ahFi18iVvuWrx1GmPVDHZTEeF7ox&W=&DETAILS=&JSON=0
+# https://www49.myfantasyleague.com/2024/export?TYPE=liveScoring
 current_wk = 1
 next_wk = 2
 
