@@ -10,39 +10,40 @@ site_token = config.key
 
 st.set_page_config(layout="wide")
 
-st.image(global_vars.coming_soon)
+# st.image(global_vars.coming_soon)
 
 # Placeholders to fix later
 # https://www49.myfantasyleague.com/2024/export?TYPE=liveScoring
-current_wk = 1
-next_wk = 2
+current_wk =2
+next_wk = 3
 
-# st.title("Taxi Claims for Week "+str(current_wk) )
-# st.divider()
+st.title("Taxi Claims for Week "+str(current_wk) )
+st.divider()
 
-# Idiot, make the claim eligibility in the DAG, you giant moron
-# Import Schedules
+# Import Claimables
+claimables = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.taxi_claimables`")
+claimables_df = pd.DataFrame(claimables)
 
-# schedule = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.dim_schedules`")
-# schedule_df = pd.DataFrame(schedule)
-# schedule_df
+# Get the list of teams
+team = st.selectbox(
+    'Which Team is Making the Claim?', [""] + sorted(claimables_df["claiming_team_name"].unique()))
+
+
+# #Table style
+st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
+keep_cols = ["player_name", 'position', "ytd_pts", "current_team_name"]
+
+
+
+claimables_df = claimables_df.loc[claimables_df["claiming_team_name"] == team][keep_cols].rename \
+    ({'player_name' : 'Name', 'position' : 'Position', 'current_team_name' : 'Owner' , 'ytd_pts' : '2024 Pts'}, axis = 1)
+claimables_df['2024 Pts'] = claimables_df['2024 Pts'].map('{:.2f}'.format)
+st.table(claimables_df)
 ##################################
 
-# #Define Current, Next Weeks
-# names = global_vars.extract_values(schedule, 'current_week')
-# current_wk = round(float(names[0]))
-# next_wk = current_wk + 1
 
 # # with st.chat_message("Norwood", avatar = "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/scott-norwood-1486054177.jpg?crop=1.00xw:0.358xh;0,0.226xh&resize=900:*"):
 # #     st.write("What team are you claming for?")
-
-# # Get the list of teams
-# franchises = api_calls.get_teams()
-# keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
-# df_franchises = pd.DataFrame(franchises)[keep_cols]
-
-# team = st.selectbox(
-#     'Which Team is Making the Claim?', [""] + sorted(df_franchises["franchise_name"].unique()))
 
 # # Get the list of players
 # players = api_calls.get_players_wr()
@@ -120,18 +121,9 @@ next_wk = 2
 #       claimables[franchise].append(int(claim_elig3.loc[player, 'mfl_id']))
 
 # # -------------------------
-# #Table style
-# st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 
-# try:
-#     team_lookup = df_franchises.loc[df_franchises['franchise_name'] == team]["mfl_id"].values[0]
-#     # st.write(claimables[str(team_lookup)])
-#     team_claimables = claimables[str(team_lookup)]
-#     st.header("Players eligible to be claimed")
-#     st.dataframe(claim_elig2.loc[claim_elig2["mfl_id"].isin(team_claimables)].drop(["mfl_id"], axis = 1),
-#                   hide_index=True, use_container_width = True)
-# except:
-#     st.write("Please select a team above")
+
+
 
 
 

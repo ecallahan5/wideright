@@ -1,0 +1,4 @@
+- FFP
+    What happens after week 8?
+- Current Week code 
+- DAG timing?
