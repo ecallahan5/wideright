@@ -15,7 +15,7 @@ st.set_page_config(layout="wide")
 # Placeholders to fix later
 # https://www49.myfantasyleague.com/2024/export?TYPE=liveScoring
 current_wk =2
-next_wk = 3
+
 
 st.title("Taxi Claims for Week "+str(current_wk) )
 st.divider()
