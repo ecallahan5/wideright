@@ -12,10 +12,8 @@ st.set_page_config(layout="wide")
 
 # st.image(global_vars.coming_soon)
 
-# Placeholders to fix later
-# https://www49.myfantasyleague.com/2024/export?TYPE=liveScoring
-current_wk =2
 
+current_wk = functions.bq_query("SELECT current_week FROM `mfl-374514.dbt_production.dim_current_week`")[0]["current_week"]
 
 st.title("Taxi Claims for Week "+str(current_wk) )
 st.divider()
