@@ -13,7 +13,7 @@ st.title("Roster Construction")
 st.divider()
 
 # Get the current rosters
-rosters = functions.bq_query("SELECT c.franchise_name, a.player_id, contract_year, salary, team, b.player_name, position  \
+rosters = functions.bq_query("SELECT c.franchise_name, a.player_id, contract_year, salary, team, b.player_name, position, a.status  \
                               FROM `mfl-374514.dbt_production.dim_rosters` a \
                              left join `mfl-374514.dbt_production.dim_players`  b\
                              on a.player_id = b.player_id \
@@ -40,14 +40,12 @@ st.divider()
 
 contract_yrs = global_vars.zipped_df.loc[global_vars.zipped_df["Year"] == year]["Contract Length"].values[0]
 filtered_df = rosters_df.loc[(rosters_df["franchise_name"] == team) & ((rosters_df["contract_year"]) >= contract_yrs)]
-# filtered_df["salary1"] = filtered_df["salary"].apply("${:,.2f}".format)
 filtered_df['position_order'] = filtered_df['position'].map(global_vars.sort_mapping['index'])
 filtered_df = filtered_df.rename(columns={"player_name": "Name", "position": "Position", "salary": "Salary"}).sort_values('position_order')
 
-
 cap_used = "${:,.2f}".format(filtered_df["Salary"].sum())
 contract_yrs_used = filtered_df["contract_year"].sum()
-roster_spots_used = filtered_df["player_id"].count()
+roster_spots_used = len(filtered_df.loc[filtered_df["status"] != 'INJURED_RESERVE'])
 
 cap_space = "${:,.2f}".format(global_vars.salary_cap - filtered_df["Salary"].sum())
 contract_yrs_free = global_vars.contract_cap - contract_yrs_used
