@@ -1,101 +1,96 @@
 import pandas as pd
 import streamlit as st
 import requests
-import json
-import config
 import functions
 import global_vars
 
-
 st.set_page_config(layout="wide")
 st.title("Annual Free Extension Eligibility")
-st.markdown("""<hr style="height:10px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+st.divider()
 
-st.image(global_vars.coming_soon)
+# Which players are eligible to be given a free extension?
+ext_eligible = functions.bq_query("SELECT * FROM `mfl-374514.dbt_ecallahan.dim_free_ext_elig`")
+ext_eligible_df = pd.DataFrame(ext_eligible)
+ext_eligible_df['position_order'] = ext_eligible_df['position'].map(global_vars.sort_mapping['index'])
+ext_eligible_df = ext_eligible_df.rename(columns={"player_name": "Name","position": "Position", "salary": "Salary"}).sort_values('position_order')
+ext_eligible_df["Salary"] = ext_eligible_df["Salary"].apply("${:,.2f}".format)
 
-################################
+team = st.selectbox(
+    '**Which Team is Extending a Player?**', sorted(ext_eligible_df["franchise_name"].unique()), \
+        index=None, placeholder="Choose a team")
 
-# # Get the list of teams
-# franchises = api_calls.get_teams()
-# keep_cols = ["mfl_id", "division", "franchise_name", "icon_url"]
-# df_franchises = pd.DataFrame(franchises)[keep_cols]
-# rosters = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.dim_rosters`")
-# rosters
+team_elig = ext_eligible_df.loc[ext_eligible_df["franchise_name"] == team]
 
-# # Who has already done one?
-# extensions_df = api_calls.get_extensions()
-# free_ext = extensions_df.loc[extensions_df["extension_type"] == 'free'][["player", "franchise", "length"]]
-# free_ext_teams = free_ext["franchise"].tolist()
+if team:
+    player = st.radio("Here is who is eligible to be extended", team_elig["Name"] + " - " + team_elig["Position"],\
+        captions = team_elig["Salary"], horizontal=True)
+    
+    st.divider()
+    st.subheader("Extension Options for "+str(player) )
 
+    salary = team_elig.loc[team_elig["Name"] + " - " + team_elig["Position"] == player]["Salary"].values[0]
+    ext_1_min = 5
+    ext_2_min = 12
+    ext_3_min = 24
+    ext_1_salary = f"${max(functions.calculate_updated_value(salary, 1.15), ext_1_min):.2f}"
+    ext_2_salary = f"${max(functions.calculate_updated_value(salary, 1.30), ext_2_min):.2f}"
+    ext_3_salary = f"${max(functions.calculate_updated_value(salary, 1.45), ext_3_min):.2f}"
 
-# team = st.selectbox(
-#     '**Which Team is Extending a Player?**', [""] + sorted(df_franchises["franchise_name"].unique()))
+    col1, col2, col3 = st.columns(3, gap = "large")
 
-# if team in free_ext_teams:
-#     player = free_ext.loc[free_ext["franchise"] == team]["player"].values[0]
-#     term = free_ext.loc[free_ext["franchise"] == team]["length"].values[0]
-#     st.subheader(str(team)+" has already given "+str(player)+" an extension of "+str(term)+" years." )
+    with col1:
+        st.metric("1 Year", ext_1_salary)
+    with col2:
+        st.metric("2 Year", ext_2_salary)
+    with col3:    
+        st.metric("3 Year", ext_3_salary)
 
-# else:
-#     # Get the current rosters
-#     rosters = api_calls.get_rosters()
-#     keep_cols = ["mfl_id", "franchise_name", "salary", "contract_years", "status"]
-#     rosters_df = pd.DataFrame(rosters)[keep_cols]
-#     rosters_df = rosters_df.loc[rosters_df["status"] != 'TAXI_SQUAD']
-#     rosters_df['mfl_id'] = rosters_df['mfl_id'].astype(str)
-
-#     # Get player metadata
-#     players = api_calls.get_players_wr()
-#     keep_cols = ["position", "mfl_id", "first_name", "last_name"]
-#     players_df = pd.DataFrame(players)[keep_cols]
-#     players_df["mfl_id"] = players_df["mfl_id"].astype(str)
-
-
-#     try:
-#         # Join player dfs
-#         players_df1 = rosters_df.merge(players_df, how = 'left', on = 'mfl_id')
-#         players_df1['position_order'] = players_df1['position'].map(global_vars.sort_mapping['index'])
-#         filtered_df = players_df1.loc[(players_df1["franchise_name"] == team) & ((players_df1["contract_years"]) == 1)]
-#         filtered_df = filtered_df.rename(columns={"first_name": "First Name", "last_name": "Last Name","position": "Position", "salary": "Salary"}).sort_values('position_order')
-#         table_cols = ["First Name", "Last Name", "Position", "Salary "]
-#         filtered_df["Salary"] = filtered_df["Salary"].apply("${:,.2f}".format)
-
-#         player = st.radio("Here is who is eligible to be extended", filtered_df["First Name"] + " " + filtered_df["Last Name"] + " - " + filtered_df["Position"],\
-#                 captions = filtered_df["Salary"])
-
-#         st.divider()
-#         selected_salary = filtered_df.loc[filtered_df["First Name"] + " " + filtered_df["Last Name"] + " - " + filtered_df["Position"] == player]["Salary"].values[0]
-
-#         def calculate_updated_value(selected_salary, constant):
-#             # Get the value from the specified column
-#             value_str = selected_salary
+    st.divider()
+    with st.chat_message("Norwood", avatar=global_vars.norwood_avatar):
+        st.write("Would you like to extend " + player + "?")
+        extend = st.checkbox("Yes!")
+        if extend: 
+            ext_length = st.radio("How many years would you like to extend " + player + "?", [1,2,3], horizontal=True)
+            if ext_length == 1: 
+                ext_salary = ext_1_salary
+                if functions.calculate_updated_value(salary, 1) < ext_1_min: 
+                    adj_needed = True
+                else: 
+                    adj_needed = False
+            if ext_length == 2: 
+                ext_salary = ext_2_salary
+                if functions.calculate_updated_value(salary, 1) < ext_2_min: 
+                    adj_needed = True
+                else: 
+                    adj_needed = False
+            if ext_length == 3: 
+                ext_salary = ext_3_salary
+                if functions.calculate_updated_value(salary, 1) < ext_3_min: 
+                    adj_needed = True
+                else: 
+                    adj_needed = False
+            if adj_needed:
+                st.warning("""The current contract is below the minimum required to execute this extension. 
+                           If you would like to proceed, this year\'s contract will immediately increase to """ + ext_salary + ".", icon="⚠️")
+            st.divider()
+            st.write(f"Would you like to extend {player} for {ext_length} years at a salary of {ext_salary}?")
+            extend_action = st.button("Extend him!")
+            if extend_action:
+                webhook_url = 'https://discord.com/api/webhooks/1287066512745693235/q9xOKdmyjoPsrO8LrHLY700gGHVl5eGayY15hxet5EEFawNAbgxFK1VQF7SvQ1XCYlFg'
+                # test_url = 'https://discord.com/api/webhooks/1275122704164323360/YXzGlV2DI1PQ8LtXSEo0bpgxiLg3hw-HPXDtaNopRyzXX1gdjay01Icx4HqzZrJfjB4z'
+                if adj_needed: 
+                    content = f"🚨 **ANNUAL FREE EXTENSION ALERT!** 🚨\n\n" \
+                            f"**{team}** is extending **{player}** for **{ext_length} years** at a salary of **{ext_salary}**.\n\n" \
+                            f"<@197385905638604800> will need to adjust the current year's salary."
+                else:
+                    content = f"🚨 **ANNUAL FREE EXTENSION ALERT!** 🚨\n\n" \
+                            f"**{team}** is extending **{player}** for **{ext_length} years** at a salary of **{ext_salary}**."
+                payload = {"content": content}
+                r = requests.post(url = webhook_url, data = payload)
+                if r: 
+                    st.toast("Your claim has been submitted!", icon='🎉')
             
-#             # Remove the dollar sign if it exists
-#             value_str = value_str.replace('$', '')
 
-#             try:
-#                 # Convert the modified string to a float
-#                 value = float(value_str)
-                
-#                 # Calculate the updated value
-#                 updated_value = value * constant
 
-#                 # Format the updated value as USD currency
-#                 formatted_value = updated_value = f"${updated_value:.2f}"
 
-#                 return formatted_value
-#             except ValueError:
-#                 return None  
-
-#         st.subheader("Extension Options for "+str(player) )
-#         col1, col2, col3 = st.columns(3, gap = "large")
-
-#         with col1:
-#             st.metric("1 Year", calculate_updated_value(selected_salary, 1.15))
-#         with col2:
-#             st.metric("2 Year", calculate_updated_value(selected_salary, 1.30))
-#         with col3:    
-#             st.metric("3 Year", calculate_updated_value(selected_salary, 1.45))
-
-#     except:
-#         st.write("Please select a team above")        
+ 

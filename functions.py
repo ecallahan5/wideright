@@ -109,3 +109,17 @@ def bq_query(query):
     # Convert to list of dicts. Required for st.cache_data to hash the return value.
     rows = [dict(row) for row in rows_raw]
     return rows
+
+def calculate_updated_value(salary, constant):
+    # Get the value from the specified column
+    value_str = salary  
+    # Remove the dollar sign if it exists
+    value_str = value_str.replace('$', '')
+    # Convert the modified string to a float
+    value = float(value_str)
+    # Calculate the updated value
+    updated_value = value * constant
+
+    return updated_value
+
+

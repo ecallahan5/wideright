@@ -1,5 +1,4 @@
 - FFP
     What happens after week 8?
-userID mapping tables
-
-dont count IR players in roster counts
+- userID mapping tables
+- webhook embeds?

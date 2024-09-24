@@ -27,7 +27,7 @@ st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 keep_cols = ["player_name", 'position', "ytd_pts", "current_team_name"]
 
 
-with st.chat_message("Norwood", avatar = "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/scott-norwood-1486054177.jpg?crop=1.00xw:0.358xh;0,0.226xh&resize=900:*"):
+with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
     st.write("What team are you claming for?")
     team = st.selectbox(
     '', [""] + sorted(claimables_df["claiming_team_name"].unique()))

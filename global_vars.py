@@ -21,6 +21,7 @@ dollar_icon = "https://icons.veryicon.com/png/o/business/business-icon-2/money-4
 contract_icon = "https://cdn-icons-png.flaticon.com/512/126/126249.png"
 player_icon = "https://cdn-icons-png.flaticon.com/512/164/164457.png"
 coming_soon = "https://media.istockphoto.com/id/1410983127/vector/under-construction-sign-and-label.jpg?s=612x612&w=0&k=20&c=8Ft81am5L7o1AAZ7SDPn3gi51ur_7cfrlU2au4_bptM="
+norwood_avatar = avatar = "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/scott-norwood-1486054177.jpg?crop=1.00xw:0.358xh;0,0.226xh&resize=900:*"
 
 #League Year
 cur_month = datetime.now().month
