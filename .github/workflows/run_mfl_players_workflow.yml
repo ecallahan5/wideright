@@ -52,3 +52,5 @@ jobs:
         run: python 'dlt/scores.py'
       - name: Run standings script
         run: python 'dlt/standings.py'
+      - name: Run results script
+        run: python 'dlt/results.py'
