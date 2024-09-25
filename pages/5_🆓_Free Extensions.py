@@ -9,7 +9,7 @@ st.title("Annual Free Extension Eligibility")
 st.divider()
 
 # Which players are eligible to be given a free extension?
-ext_eligible = functions.bq_query("SELECT * FROM `mfl-374514.dbt_ecallahan.dim_free_ext_elig`")
+ext_eligible = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.dim_free_ext_elig`")
 ext_eligible_df = pd.DataFrame(ext_eligible)
 ext_eligible_df['position_order'] = ext_eligible_df['position'].map(global_vars.sort_mapping['index'])
 ext_eligible_df = ext_eligible_df.rename(columns={"player_name": "Name","position": "Position", "salary": "Salary"}).sort_values('position_order')
