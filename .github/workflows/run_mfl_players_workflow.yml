@@ -1,7 +1,7 @@
-name: Run mfl_players pipeline from players.py
+name: Run dlt pipelines
 on:
   schedule:
-    - cron: '0 4 * * *'  # Run at midnight every day
+    - cron: '0 4 * * *'  # Run at 4 AM every day
   workflow_dispatch: null
 env:
   DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
@@ -50,3 +50,5 @@ jobs:
         run: python 'dlt/schedule.py'
       - name: Run scores script
         run: python 'dlt/scores.py'
+      - name: Run standings script
+        run: python 'dlt/standings.py'

@@ -2,3 +2,5 @@
     What happens after week 8?
 - userID mapping tables
 - webhook embeds?
+- for extensions, check current cap and contract year space
+
