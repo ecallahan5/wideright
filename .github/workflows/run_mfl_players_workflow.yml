@@ -1,7 +1,7 @@
 name: Run dlt pipelines
 on:
   schedule:
-    - cron: '0 4 * * *'  # Run at 4 AM every day
+    - cron: '0 5 * * *'  # Run at 5 AM every day
   workflow_dispatch: null
 env:
   DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
