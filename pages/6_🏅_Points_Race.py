@@ -9,6 +9,7 @@ st.title("Points Race")
 st.divider()
 
 after_wk = functions.bq_query("SELECT recent_completed_week FROM `mfl-374514.dbt_production.dim_current_week`")[0]["recent_completed_week"]
+last_wk = functions.bq_query("SELECT recent_completed_week - 1 as last_week FROM `mfl-374514.dbt_production.dim_current_week`")[0]["last_week"]
 
 top_pts_probs = functions.bq_query(f"SELECT franchise_name as `Team`, top_pts, icon \
                                    FROM `mfl-374514.dbt_production.fct_reg_season_model` a \
@@ -18,6 +19,14 @@ top_pts_probs = functions.bq_query(f"SELECT franchise_name as `Team`, top_pts, i
                                    order by top_pts desc \
                                    limit 3  ")
 top_pts_probs_df = pd.DataFrame(top_pts_probs)
+
+lw_probs = functions.bq_query(f"SELECT franchise_name as `Team`, top_pts as lw_top_pts \
+                                   FROM `mfl-374514.dbt_production.fct_reg_season_model` a \
+                                   join `mfl-374514.dbt_production.dim_franchises` b \
+                                   on a.franchise_id = b.franchise_id \
+                                   where after_week = {last_wk} \
+                                   order by top_pts desc  ")
+lw_probs_df = pd.DataFrame(lw_probs)
 
 pts = functions.bq_query("SELECT franchise_name as `Franchise Name`, points_for as `Total Points` \
                                FROM `mfl-374514.dbt_production.dim_standings` a\
@@ -44,11 +53,11 @@ with col2:
         helmet = top_pts_probs_df["icon"].values[row_num]
         team = top_pts_probs_df["Team"].values[row_num]
         prob = float(top_pts_probs_df["top_pts"].values[row_num])*100
-#         lw_prob = float(all_prob_df["lw_top_pts"].values[row_num])*100
-#         wow = prob - lw_prob
+        lw_prob = float(lw_probs_df["lw_top_pts"].values[row_num])*100
+        wow = prob - lw_prob
         mygrid[row_num][0].image(helmet)
-        # mygrid[row_num][1].metric(team,"{0:.2f}%".format(prob), "{0:.2f}%".format(wow))
-        mygrid[row_num][1].metric(team,"{0:.2f}%".format(prob))
+        mygrid[row_num][1].metric(team,"{0:.2f}%".format(prob), "{0:.2f}%".format(wow))
+        # mygrid[row_num][1].metric(team,"{0:.2f}%".format(prob))
 
 ######################################
 
