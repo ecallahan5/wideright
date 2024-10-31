@@ -39,7 +39,7 @@ with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
         st.write("Here are the players that " + team + " can claim:" )
 
         claimables_df = claimables_df.loc[claimables_df["claiming_team_name"] == team][keep_cols].rename \
-            ({'player_name' : 'Name', 'position' : 'Position', 'current_team_name' : 'Owner' , 'ytd_pts' : '2024 Pts'}, axis = 1)
+            ({'player_name' : 'Name', 'position' : 'Position', 'current_team_name' : 'Owner' , 'ytd_pts' : '2024 Pts'}, axis = 1).sort_values(["2024 Pts"], ascending = False)
         claimables_df['2024 Pts'] = claimables_df['2024 Pts'].map('{:.2f}'.format)
         claimables_df["comp_pick"] = claimables_df["comp_pick"].fillna(0).astype(int)
         st.table(claimables_df.iloc[:, :4])
