@@ -41,6 +41,7 @@ with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
         claimables_df = claimables_df.loc[claimables_df["claiming_team_name"] == team][keep_cols].rename \
             ({'player_name' : 'Name', 'position' : 'Position', 'current_team_name' : 'Owner' , 'ytd_pts' : '2024 Pts'}, axis = 1)
         claimables_df['2024 Pts'] = claimables_df['2024 Pts'].map('{:.2f}'.format)
+        claimables_df["comp_pick"] = claimables_df["comp_pick"].fillna(0).astype(int)
         st.table(claimables_df.iloc[:, :4])
 
         st.write("Would you like to claim any of these players?")
@@ -49,7 +50,8 @@ with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
             claiming = st.radio("Who would you like to claim?", claimables_df)
             name = claimables_df.loc[claimables_df["Name"] == claiming]["Name"].values[0]
             owner = claimables_df.loc[claimables_df["Name"] == claiming]["Owner"].values[0]
-            comp_pick = int(claimables_df.loc[claimables_df["Name"] == claiming]["comp_pick"].values[0])
+
+            comp_pick = claimables_df.loc[claimables_df["Name"] == claiming]["comp_pick"].values[0]
             if claimables_df.loc[claimables_df["Name"] == name]["ffp_flag"].values[0] == 1:
                 st.warning(name+" is a designated Future Franchise Player (FFP). If you'd like to claim him you must surrender a future pick in Round "+str(comp_pick), icon="⚠️")
             st.write("Would you like to claim " + name + " from " + owner + " ?")
