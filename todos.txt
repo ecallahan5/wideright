@@ -4,3 +4,6 @@
 - for extensions, check current cap and contract year space
 - take league API keys out of dlt URLs
 - autoclear cache or something?
+- week calculations need to move to global vars
+- prizes left and weekly pot are manual!
+- add salary adjustments to roster mgt site
