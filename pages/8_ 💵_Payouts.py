@@ -71,8 +71,8 @@ with col2:
           )       
 with col3:
     st.subheader("Weekly Side Games", divider=True)
-    prizes_left = 75
-    weekly_pot = 5
+    prizes_left = 55
+    weekly_pot = 10
     st.metric("Weekly Prizes Left", f"${prizes_left:,.0f}")
     st.metric("This Week's Big Win Pot", f"${weekly_pot:,.0f}")
 
