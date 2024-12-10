@@ -21,60 +21,60 @@ payouts_df = pd.DataFrame(payouts)
 
 st.dataframe(payouts_df, hide_index=True, use_container_width = True)
 st.divider()
-st.header("Regular Season - Up for Grabs", divider=True)
+# st.header("Regular Season - Up for Grabs", divider=True)
 
-after_wk = functions.bq_query("SELECT recent_completed_week FROM `mfl-374514.dbt_production.dim_current_week`")[0]["recent_completed_week"]
+# after_wk = functions.bq_query("SELECT recent_completed_week FROM `mfl-374514.dbt_production.dim_current_week`")[0]["recent_completed_week"]
 
-div_probs = functions.bq_query(f"SELECT b.franchise_name as `Franchise Name`, b.division, b.icon, a.win_division as `Division Title Chance` \
-                               FROM `mfl-374514.dbt_production.fct_reg_season_model` a\
-                               join `mfl-374514.dbt_production.dim_franchises` b \
-                                   on a.franchise_id = b.franchise_id \
-                               where after_week = {after_wk}  ")
-div_probs_df = pd.DataFrame(div_probs)
+# div_probs = functions.bq_query(f"SELECT b.franchise_name as `Franchise Name`, b.division, b.icon, a.win_division as `Division Title Chance` \
+#                                FROM `mfl-374514.dbt_production.fct_reg_season_model` a\
+#                                join `mfl-374514.dbt_production.dim_franchises` b \
+#                                    on a.franchise_id = b.franchise_id \
+#                                where after_week = {after_wk}  ")
+# div_probs_df = pd.DataFrame(div_probs)
 
-wc_probs = functions.bq_query(f"SELECT b.franchise_name as `Franchise Name`, b.division, b.icon, a.wild_card as `Wild Card Chance` \
-                               FROM `mfl-374514.dbt_production.fct_reg_season_model` a\
-                               join `mfl-374514.dbt_production.dim_franchises` b \
-                                   on a.franchise_id = b.franchise_id \
-                               where after_week = {after_wk} order by wild_card desc  ")
+# wc_probs = functions.bq_query(f"SELECT b.franchise_name as `Franchise Name`, b.division, b.icon, a.wild_card as `Wild Card Chance` \
+#                                FROM `mfl-374514.dbt_production.fct_reg_season_model` a\
+#                                join `mfl-374514.dbt_production.dim_franchises` b \
+#                                    on a.franchise_id = b.franchise_id \
+#                                where after_week = {after_wk} order by wild_card desc  ")
 
-wc_probs_df = pd.DataFrame(wc_probs)
+# wc_probs_df = pd.DataFrame(wc_probs)
 
-col1, col2, col3 = st.columns(3, gap = "large")
+# col1, col2, col3 = st.columns(3, gap = "large")
 
-with col1:
-    st.subheader("Division Title Probables - $50", divider=True)
-    # grid_row_count = 2
-    # grid_col_count = 3
+# with col1:
+#     st.subheader("Division Title Probables - $50", divider=True)
+#     # grid_row_count = 2
+#     # grid_col_count = 3
 
-    # mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
+#     # mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
 
-    for col_num, division in enumerate(div_probs_df["division"].unique()):
-    # Filter and sort the DataFrame for the specific division
-        div_df = div_probs_df.loc[div_probs_df["division"] == division].sort_values(by='Division Title Chance', ascending=False).reset_index()
-        # Get the first row for the division
-        top_team = div_df.iloc[0]
-        # Display the division name as a subheader in the appropriate column
-        # mygrid[0][col_num].subheader(str(division), divider=False)
-        st.metric(
-            label=top_team["Franchise Name"],  
-            value=f"{top_team['Division Title Chance']:.0%}",  # Format as a percentage
-        )       
-with col2: 
-    st.subheader("Wild Card Probables - $30", divider=True)
+#     for col_num, division in enumerate(div_probs_df["division"].unique()):
+#     # Filter and sort the DataFrame for the specific division
+#         div_df = div_probs_df.loc[div_probs_df["division"] == division].sort_values(by='Division Title Chance', ascending=False).reset_index()
+#         # Get the first row for the division
+#         top_team = div_df.iloc[0]
+#         # Display the division name as a subheader in the appropriate column
+#         # mygrid[0][col_num].subheader(str(division), divider=False)
+#         st.metric(
+#             label=top_team["Franchise Name"],  
+#             value=f"{top_team['Division Title Chance']:.0%}",  # Format as a percentage
+#         )       
+# with col2: 
+#     st.subheader("Wild Card Probables - $30", divider=True)
 
-    wc_df = wc_probs_df.iloc[0:3]
-    for _, team in wc_df.iterrows():  
-        st.metric(
-        label=team["Franchise Name"],  
-        value=f"{team['Wild Card Chance']:.0%}",  # Format as a percentage
-          )       
-with col3:
-    st.subheader("Weekly Side Games", divider=True)
-    prizes_left = 35
-    weekly_pot = 15
-    st.metric("Weekly Prizes Left", f"${prizes_left:,.0f}")
-    st.metric("This Week's Big Win Pot", f"${weekly_pot:,.0f}")
+#     wc_df = wc_probs_df.iloc[0:3]
+#     for _, team in wc_df.iterrows():  
+#         st.metric(
+#         label=team["Franchise Name"],  
+#         value=f"{team['Wild Card Chance']:.0%}",  # Format as a percentage
+#           )       
+# with col3:
+#     st.subheader("Weekly Side Games", divider=True)
+#     prizes_left = 35
+#     weekly_pot = 15
+#     st.metric("Weekly Prizes Left", f"${prizes_left:,.0f}")
+#     st.metric("This Week's Big Win Pot", f"${weekly_pot:,.0f}")
 
 
         
