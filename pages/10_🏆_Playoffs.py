@@ -34,12 +34,12 @@ teams_df = pd.DataFrame(teams)
 
 champ_df = pd.DataFrame(
 
-     [{"seed": 4,"franchise_id":"0008","Champ":0.1846,"Runner-Up":0.3042,"3rd place":0.2255},
-     {"seed": 3,"franchise_id":"0002","Champ":0.4189,"Runner-Up":0.2389,"3rd place":0.2215},
-     {"seed": 1,"franchise_id":"0001","Champ":0.2216,"Runner-Up":0.2896,"3rd place":0.2227},
+     [{"seed": 4,"franchise_id":"0008","Champ":0,"Runner-Up":0,"3rd place":0.5261},
+     {"seed": 3,"franchise_id":"0002","Champ":0.6139,"Runner-Up":0.3861,"3rd place":0},
+     {"seed": 1,"franchise_id":"0001","Champ":0.3861,"Runner-Up":0.6139,"3rd place":0},
     {"seed": 5,"franchise_id":"0003","Champ":0,"Runner-Up":0,"3rd place":0},
-     {"seed": 6,"franchise_id":"0008","Champ":0,"Runner-Up":0,"3rd place":0},
-     {"seed": 2,"franchise_id":"0009","Champ":0.1749,"Runner-Up":0.1673,"3rd place":0.3303}]
+     {"seed": 6,"franchise_id":"0005","Champ":0,"Runner-Up":0,"3rd place":0},
+     {"seed": 2,"franchise_id":"0009","Champ":0,"Runner-Up":0,"3rd place":0.4739}]
  )
 
 champ_df = champ_df.merge(teams_df, on = 'franchise_id')
@@ -49,19 +49,19 @@ st.subheader('This Week\'s Games', divider=False)
 with st.expander("Click for Previews"):
      with st.container(border = True):
           col1, col2, col3, col4, col5 = st.columns(5)
-          col1.metric("Hidden Talents", "#4")
-          col2.metric('Win %', "48%")
+          col1.metric("Brooklyn Big Blue", "#3")
+          col2.metric('Win %', "61%")
           col3.write("Prediction")
-          col3.image(champ_df.loc[champ_df["seed"] == 1]["icon"].values[0])
-          col4.metric('Win %', "52%")
+          col3.image(champ_df.loc[champ_df["seed"] == 3]["icon"].values[0])
+          col4.metric('Win %', "39%")
           col5.metric("The Uncaught Exceptions", "#1")
      with st.container(border = True):
           col1, col2, col3, col4, col5= st.columns(5)
-          col1.metric("Brooklyn Big Blue", "#3")
-          col2.metric('Win %', "66%")
+          col1.metric("Hidden Talents", "#4")
+          col2.metric('Win %', "52%")
           col3.write("Prediction")
-          col3.image(champ_df.loc[champ_df["seed"] == 3]["icon"].values[0])
-          col4.metric('Win %', "34%")
+          col3.image(champ_df.loc[champ_df["seed"] == 4]["icon"].values[0])
+          col4.metric('Win %', "48%")
           col5.metric("The Gurley Tates", "#2")
 
 # st.divider()
@@ -121,10 +121,10 @@ with st.expander("Click for Bracket"):
 
      with col3:    
           st.subheader("Finals", divider = True)
-#           with st.container(border = True):
-#                st.image(champ_df.loc[champ_df["seed"] == 4]["icon"].values[0])
-#           with st.container(border = True):
-#                st.image(champ_df.loc[champ_df["seed"] == 2]["icon"].values[0])
+          with st.container(border = True):
+               st.image(champ_df.loc[champ_df["seed"] == 3]["icon"].values[0])
+          with st.container(border = True):
+               st.image(champ_df.loc[champ_df["seed"] == 1]["icon"].values[0])
 
 
 st.divider()
@@ -139,12 +139,12 @@ st.header("Consolation Bracket", divider=True)
 
 cons_df = pd.DataFrame(
 
-[{"seed": 6,"franchise_id":"0004","Extra Pick":0.1154},
- {"seed": 4,"franchise_id":"0007","Extra Pick":0.1739},
- {"seed": 1,"franchise_id":"0006","Extra Pick":0.4147},
+[{"seed": 6,"franchise_id":"0004","Extra Pick":0},
+ {"seed": 4,"franchise_id":"0007","Extra Pick":0},
+ {"seed": 1,"franchise_id":"0006","Extra Pick":0.6036},
  {"seed": 3,"franchise_id":"0005","Extra Pick":0},
  {"seed": 5,"franchise_id":"0010","Extra Pick":0},
- {"seed": 2,"franchise_id":"0012","Extra Pick":0.2960}]
+ {"seed": 2,"franchise_id":"0012","Extra Pick":0.3964}]
 )
 
 cons_df = cons_df.merge(teams_df, on = 'franchise_id')
@@ -184,10 +184,10 @@ with st.expander("Click for Bracket"):
                st.image(cons_df.loc[cons_df["seed"] == 1]["icon"].values[0])
      with col3:    
           st.subheader("Finals", divider = True)
-#           with st.container(border = True):
-#                st.image(cons_df.loc[cons_df["seed"] == 2]["icon"].values[0])
-#           with st.container(border = True):
-#                st.image(cons_df.loc[cons_df["seed"] == 1]["icon"].values[0])
+          with st.container(border = True):
+               st.image(cons_df.loc[cons_df["seed"] == 2]["icon"].values[0])
+          with st.container(border = True):
+               st.image(cons_df.loc[cons_df["seed"] == 1]["icon"].values[0])
 
 
 # st.divider()
