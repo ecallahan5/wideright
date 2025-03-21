@@ -1,6 +1,6 @@
 import dlt
 from dlt.sources.helpers import requests
-
+import config
 
 @dlt.source
 def sourcename_source(api_secret_key=dlt.secrets.value):
@@ -21,7 +21,7 @@ def sourcename_resource(api_secret_key=dlt.secrets.value):
     print(headers)
 
     # make an api call here
-    url = "https://www49.myfantasyleague.com/2023/export?TYPE=players&L=59643&APIKEY=ahFi18iVvuWrx1GmPVDHZTEeF7ox&DETAILS=&SINCE=&PLAYERS=&JSON=1"
+    url = "https://www49.myfantasyleague.com/{config.last_league_year}/export?TYPE=players&L={league_id}&APIKEY={config.mfl_api_key}&DETAILS=&SINCE=&PLAYERS=&JSON=1"
     response = requests.get(url)
     response.raise_for_status()
     yield response.json()
