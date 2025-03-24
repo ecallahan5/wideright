@@ -1,6 +1,6 @@
 import dlt
 from dlt.sources.helpers import requests
-
+import config
 
 @dlt.source
 def sourcename_source(api_secret_key=dlt.secrets.value):
