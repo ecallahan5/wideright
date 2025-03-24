@@ -21,7 +21,7 @@ def sourcename_resource(api_secret_key=dlt.secrets.value):
     print(headers)
 
     # make an api call here
-    url = "https://www49.myfantasyleague.com/{config.league_year}/export?TYPE=rosters&L={config.league_id}&APIKEY={config.mfl_api_key}&FRANCHISE=&W=&JSON=1"
+    url = f"https://{config.host}/{config.league_year}/export?TYPE=rosters&L={config.league_id}&APIKEY={config.mfl_api_key}&FRANCHISE=&W=&JSON=1"
     response = requests.get(url)
     response.raise_for_status()
     yield response.json()
