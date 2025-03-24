@@ -5,3 +5,4 @@
 - week calculations need to move to global vars
 - prizes left and weekly pot are manual!
 - add salary adjustments to roster mgt site
+- make hostname a variable
