@@ -1,8 +1,13 @@
+-- Python cleanup
+    - Sean 3/28
+        - make hostname a variable
+        - week calculations need to move to global vars
+    - webhook embeds?
 
-- webhook embeds?
-- for extensions, check current cap and contract year space
+- dbt
+    - add salary adjustments to roster mgt site
+    - for extensions, check current cap and contract year space
+    - prizes left and weekly pot are manual!
+
 - autoclear cache or something?
-- week calculations need to move to global vars
-- prizes left and weekly pot are manual!
-- add salary adjustments to roster mgt site
-- make hostname a variable
+
