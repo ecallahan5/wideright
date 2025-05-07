@@ -2,7 +2,7 @@ import streamlit as st
 import global_vars
 from datetime import datetime
 
-st.title("Welcome to Wide Right 2024!")
+st.title("Welcome to Wide Right 2025!")
 st.image("https://s.yimg.com/ny/api/res/1.2/QJcrvuxEPZLQX4n3kjaa2g--/YXBwaWQ9aGlnaGxhbmRlcjt3PTI0MDA7aD0xNjI4O2NmPXdlYnA-/https://s.yimg.com/os/creatr-images/2019-02/9c91c250-2653-11e9-bfee-96db584edaa1")
 st.divider()
 
