@@ -1,7 +1,17 @@
+import os
+import sys
 import dlt
 from dlt.sources.helpers import requests
-import config
 
+# Get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Get the parent directory (where config.py is)
+parent_dir = os.path.dirname(script_dir)
+# Add parent directory to sys.path
+sys.path.insert(0, parent_dir)
+
+# Now import config
+import config
 @dlt.source
 def sourcename_source(api_secret_key=dlt.secrets.value):
     return sourcename_resource(api_secret_key)
