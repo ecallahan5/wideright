@@ -35,13 +35,18 @@ else:
     league_yr = cur_yr-1
 
 #League Data
-league_url = 'https://www49.myfantasyleague.com/'+str(league_yr)+'/export?TYPE=league&L=59643&APIKEY=&JSON=1'
-r = requests.get(url = league_url)
-league = r.json()["league"]
+@st.cache_data(ttl=dt.timedelta(days=1))
+def get_league_mfl_data():
+    league_url = f'https://www49.myfantasyleague.com/{league_yr}/export?TYPE=league&L=59643&APIKEY=&JSON=1'
+    r = requests.get(url=league_url)
+    r.raise_for_status()  # Raise an exception for bad status codes
+    return r.json()["league"]
+
+league = get_league_mfl_data()
 # roster_size = int(league["rosterSize"])
-roster_size = 20
+roster_size = 20  # This seems to be a hardcoded override
 salary_cap = float(league["salaryCapAmount"])
-contract_cap = 42
+contract_cap = 42 # This is hardcoded
 max_contract_yrs = 5
 
 #Contract Years Lookup
