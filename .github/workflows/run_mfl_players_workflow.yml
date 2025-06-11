@@ -44,8 +44,8 @@ jobs:
       #   run: python 'dlt/league.py'
       # - name: Run rosters script
       #   run: python 'dlt/rosters.py'
-      # - name: Run assets script
-      #   run: python 'dlt/assets.py'
+      - name: Run assets script
+        run: python 'dlt/assets.py'
       # - name: Run schedule script
       #   run: python 'dlt/schedule.py'
       # - name: Run scores script
