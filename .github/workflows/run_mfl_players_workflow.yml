@@ -36,21 +36,21 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v2'
       - name: 'Use gcloud CLI'
         run: 'gcloud info'
-      - name: Run players script
-        run: python 'dlt/players.py'
+      # - name: Run players script
+      #   run: python 'dlt/players.py'
       - name: Run draft picks script
         run: python 'dlt/draft_picks.py'
-      - name: Run league script
-        run: python 'dlt/league.py'
-      - name: Run rosters script
-        run: python 'dlt/rosters.py'
-      - name: Run assets script
-        run: python 'dlt/assets.py'
-      - name: Run schedule script
-        run: python 'dlt/schedule.py'
-      - name: Run scores script
-        run: python 'dlt/scores.py'
-      - name: Run standings script
-        run: python 'dlt/standings.py'
-      - name: Run results script
-        run: python 'dlt/results.py'
+      # - name: Run league script
+      #   run: python 'dlt/league.py'
+      # - name: Run rosters script
+      #   run: python 'dlt/rosters.py'
+      # - name: Run assets script
+      #   run: python 'dlt/assets.py'
+      # - name: Run schedule script
+      #   run: python 'dlt/schedule.py'
+      # - name: Run scores script
+      #   run: python 'dlt/scores.py'
+      # - name: Run standings script
+      #   run: python 'dlt/standings.py'
+      # - name: Run results script
+      #   run: python 'dlt/results.py'
