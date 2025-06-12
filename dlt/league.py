@@ -1,54 +1,25 @@
-import os
-import sys
-import dlt
-from dlt.sources.helpers import requests
+from . import common # Use relative import for common
 
-# Get the directory of the current script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-# Get the parent directory (where config.py is)
-parent_dir = os.path.dirname(script_dir)
-# Add parent directory to sys.path
-sys.path.insert(0, parent_dir)
+# Define the specific resource for league
+def league_resource():
+    # year defaults to config.league_year in create_dlt_resource
+    return common.create_dlt_resource(type_name="league")
 
-# Now import config
-import config
-
-@dlt.source
-def sourcename_source(api_secret_key=dlt.secrets.value):
-    return sourcename_resource(api_secret_key)
-
-
-def _create_auth_headers(api_secret_key):
-    """Constructs Bearer type authorization header which is the most common authorization method"""
-    headers = {"Authorization": f"Bearer {api_secret_key}"}
-    return headers
-
-
-@dlt.resource(write_disposition="replace")
-def sourcename_resource(api_secret_key=dlt.secrets.value):
-    headers = _create_auth_headers(api_secret_key)
-
-    # check if authentication headers look fine
-    print(headers)
-
-    # make an api call here
-    url = f"https://{config.host}/{config.league_year}/export?TYPE=league&L={config.league_id}&APIKEY={config.mfl_api_key}&JSON=1"
-    response = requests.get(url)
-    response.raise_for_status()
-    yield response.json()
-
+# Define the specific source for league
+def league_source():
+    return common.create_dlt_source(league_resource)
 
 if __name__ == "__main__":
-    # configure the pipeline with your destination details
-    pipeline = dlt.pipeline(
-        pipeline_name='mfl_league', destination='bigquery', dataset_name='league'
+    pipeline_name = 'mfl_league'
+    dataset_name = 'league'
+
+    print("Listing data from resource for debugging (as in original script):")
+    data = list(league_resource())
+    print(data)
+
+    common.run_pipeline(
+        pipeline_name=pipeline_name,
+        dataset_name=dataset_name,
+        source_func=league_source,
+        resource_func_to_pass_to_source=league_resource
     )
-
-    # print credentials by running the resource
-    data = list(sourcename_resource())
-
-    # run the pipeline with your parameters
-    load_info = pipeline.run(sourcename_source())
-
-    # pretty print the information on data that was loaded
-    print(load_info)
