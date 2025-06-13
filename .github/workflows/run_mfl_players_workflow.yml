@@ -7,8 +7,12 @@ env:
   DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
   DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL: mfl-orchestrator@mfl-374514.iam.gserviceaccount.com
   DESTINATION__BIGQUERY__LOCATION: US
-  API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
   DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY: ${{ secrets.DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY }}
+  API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }} # Keeping this for now
+  HOST: 'www49.myfantasyleague.com'
+  LEAGUE_YEAR: '2025'
+  LEAGUE_ID: '59643'
+  MFL_API_KEY: ${{ secrets.API_SECRET_KEY }}
 
 jobs:
   run_pipeline:
@@ -36,6 +40,9 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v2'
       - name: 'Use gcloud CLI'
         run: 'gcloud info'
+      - name: Calculate LAST_LEAGUE_YEAR
+        run: |
+          echo "LAST_LEAGUE_YEAR=$(($LEAGUE_YEAR - 1))" >> $GITHUB_ENV
       # - name: Run players script
       #   run: python 'dlt/players.py'
       - name: Run draft picks script
