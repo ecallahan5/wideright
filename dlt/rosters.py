@@ -1,43 +1,28 @@
-import os
-import dlt
-from dlt.sources.helpers import requests
+from . import common # Use relative import for common
 
-@dlt.source
-def sourcename_source(api_secret_key=dlt.secrets.value):
-    return sourcename_resource(api_secret_key)
-
-
-def _create_auth_headers(api_secret_key):
-    """Constructs Bearer type authorization header which is the most common authorization method"""
-    headers = {"Authorization": f"Bearer {api_secret_key}"}
-    return headers
+# Define the specific resource for rosters
+def rosters_resource():
+    # year defaults to config.league_year in create_dlt_resource
+    # The original URL had FRANCHISE=&W= which are empty.
+    # Pass them as empty strings to make_api_call.
+    return common.create_dlt_resource(type_name="rosters", franchise="", w="")
 
 
-@dlt.resource(write_disposition="replace")
-def sourcename_resource(api_secret_key=dlt.secrets.value):
-    headers = _create_auth_headers(api_secret_key)
-
-    # check if authentication headers look fine
-    print(headers)
-
-    # make an api call here
-    url = f"https://{os.environ.get('HOST')}/{os.environ.get('LEAGUE_YEAR')}/export?TYPE=rosters&L={os.environ.get('LEAGUE_ID')}&APIKEY={os.environ.get('MFL_API_KEY')}&FRANCHISE=&W=&JSON=1"
-    response = requests.get(url)
-    response.raise_for_status()
-    yield response.json()
-
+# Define the specific source for rosters
+def rosters_source():
+    return common.create_dlt_source(rosters_resource)
 
 if __name__ == "__main__":
-    # configure the pipeline with your destination details
-    pipeline = dlt.pipeline(
-        pipeline_name='mfl_rosters', destination='bigquery', dataset_name='rosters'
+    pipeline_name = 'mfl_rosters'
+    dataset_name = 'rosters'
+
+    print("Listing data from resource for debugging (as in original script):")
+    data = list(rosters_resource())
+    print(data)
+
+    common.run_pipeline(
+        pipeline_name=pipeline_name,
+        dataset_name=dataset_name,
+        source_func=rosters_source,
+        resource_func_to_pass_to_source=rosters_resource
     )
-
-    # print credentials by running the resource
-    data = list(sourcename_resource())
-
-    # run the pipeline with your parameters
-    load_info = pipeline.run(sourcename_source())
-
-    # pretty print the information on data that was loaded
-    print(load_info)

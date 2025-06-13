@@ -1,43 +1,29 @@
-import os
-import dlt
-from dlt.sources.helpers import requests
+from . import common # Use relative import for common
+from .common import config # Make config available for config.last_league_year
 
-@dlt.source
-def sourcename_source(api_secret_key=dlt.secrets.value):
-    return sourcename_resource(api_secret_key)
-
-
-def _create_auth_headers(api_secret_key):
-    """Constructs Bearer type authorization header which is the most common authorization method"""
-    headers = {"Authorization": f"Bearer {api_secret_key}"}
-    return headers
+# Define the specific resource for last year's scores
+def last_yr_scores_resource():
+    # Pass the specific year and W parameter to create_dlt_resource
+    # Other parameters like PLAYERS, POSITION etc. were empty in the original URL,
+    # so they will default to "" in make_api_call.
+    return common.create_dlt_resource(type_name="playerScores", year=config.last_league_year, w="YTD")
 
 
-@dlt.resource(write_disposition="replace")
-def sourcename_resource(api_secret_key=dlt.secrets.value):
-    headers = _create_auth_headers(api_secret_key)
-
-    # check if authentication headers look fine
-    print(headers)
-
-    # make an api call here
-    url = f"https://{os.environ.get('HOST')}/{os.environ.get('LAST_LEAGUE_YEAR')}/export?TYPE=playerScores&L={os.environ.get('LEAGUE_ID')}&APIKEY={os.environ.get('MFL_API_KEY')}&W=YTD&YEAR=&PLAYERS=&POSITION=&STATUS=&RULES=&COUNT=&JSON=1"
-    response = requests.get(url)
-    response.raise_for_status()
-    yield response.json()
-
+# Define the specific source for last year's scores
+def last_yr_scores_source():
+    return common.create_dlt_source(last_yr_scores_resource)
 
 if __name__ == "__main__":
-    # configure the pipeline with your destination details
-    pipeline = dlt.pipeline(
-        pipeline_name='mfl_last_yr_scores', destination='bigquery', dataset_name='last_yr_scores'
+    pipeline_name = 'mfl_last_yr_scores'
+    dataset_name = 'last_yr_scores'
+
+    print("Listing data from resource for debugging (as in original script):")
+    data = list(last_yr_scores_resource())
+    print(data)
+
+    common.run_pipeline(
+        pipeline_name=pipeline_name,
+        dataset_name=dataset_name,
+        source_func=last_yr_scores_source,
+        resource_func_to_pass_to_source=last_yr_scores_resource
     )
-
-    # print credentials by running the resource
-    data = list(sourcename_resource())
-
-    # run the pipeline with your parameters
-    load_info = pipeline.run(sourcename_source())
-
-    # pretty print the information on data that was loaded
-    print(load_info)

@@ -1,43 +1,40 @@
-import os
-import dlt
-from dlt.sources.helpers import requests
 
-@dlt.source
-def sourcename_source(api_secret_key=dlt.secrets.value):
-    return sourcename_resource(api_secret_key)
+from . import common  # Use relative import for common
+from .common import config # Make config available if it's used directly in main (though it shouldn't be for API calls now)
 
-
-def _create_auth_headers(api_secret_key):
-    """Constructs Bearer type authorization header which is the most common authorization method"""
-    headers = {"Authorization": f"Bearer {api_secret_key}"}
-    return headers
+# Define the specific resource for assets
+# common.create_dlt_resource will be decorated with @dlt.resource internally
+def assets_resource():
+    # year defaults to config.league_year in create_dlt_resource
+    return common.create_dlt_resource(type_name="assets")
 
 
-@dlt.resource(write_disposition="replace")
-def sourcename_resource(api_secret_key=dlt.secrets.value):
-    headers = _create_auth_headers(api_secret_key)
-
-    # check if authentication headers look fine
-    print(headers)
-
-    # make an api call here
-    url = f"https://{os.environ.get('HOST')}/{os.environ.get('LEAGUE_YEAR')}/export?TYPE=assets&L={os.environ.get('LEAGUE_ID')}&APIKEY={os.environ.get('MFL_API_KEY')}&JSON=1"
-    response = requests.get(url)
-    response.raise_for_status()
-    yield response.json()
-
+# Define the specific source for assets
+# common.create_dlt_source will be decorated with @dlt.source internally
+def assets_source():
+    return common.create_dlt_source(assets_resource)
 
 if __name__ == "__main__":
-    # configure the pipeline with your destination details
-    pipeline = dlt.pipeline(
-        pipeline_name='mfl_assets', destination='bigquery', dataset_name='assets'
+    # The pipeline name and dataset name from the original file
+    pipeline_name = 'mfl_assets'
+    dataset_name = 'assets'
+
+    # Run the pipeline using the generalized function
+    # common.run_pipeline will call assets_source, which in turn calls assets_resource.
+    # assets_resource itself will be called by dlt when the source is iterated.
+
+    # To replicate the original behavior of listing data first:
+    print("Listing data from resource for debugging (as in original script):")
+    # Note: assets_resource() directly gives the generator.
+    # If common.create_dlt_resource is called directly, it also gives the generator.
+    # The dlt framework handles the @dlt.resource and @dlt.source decorators.
+    # For the list() call, we need to call the function that yields data.
+    data = list(assets_resource()) # This will execute the resource function
+    print(data)
+
+    common.run_pipeline(
+        pipeline_name=pipeline_name,
+        dataset_name=dataset_name,
+        source_func=assets_source, # Pass the source function
+        resource_func_to_pass_to_source=assets_resource # Pass the resource function for the source to wrap
     )
-
-    # print credentials by running the resource
-    data = list(sourcename_resource())
-
-    # run the pipeline with your parameters
-    load_info = pipeline.run(sourcename_source())
-
-    # pretty print the information on data that was loaded
-    print(load_info)
