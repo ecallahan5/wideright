@@ -1,17 +1,6 @@
 import os
-import sys
 import dlt
 from dlt.sources.helpers import requests
-
-# Get the directory of the current script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-# Get the parent directory (where config.py is)
-parent_dir = os.path.dirname(script_dir)
-# Add parent directory to sys.path
-sys.path.insert(0, parent_dir)
-
-# Now import config
-import config
 
 @dlt.source
 def sourcename_source(api_secret_key=dlt.secrets.value):
@@ -32,7 +21,7 @@ def sourcename_resource(api_secret_key=dlt.secrets.value):
     print(headers)
 
     # make an api call here
-    url = f"https://{config.host}/{config.last_league_year}/export?TYPE=players&L={config.league_id}&APIKEY={config.mfl_api_key}&DETAILS=&SINCE=&PLAYERS=&JSON=1"
+    url = f"https://{os.environ.get('HOST')}/{os.environ.get('LAST_LEAGUE_YEAR')}/export?TYPE=players&L={os.environ.get('LEAGUE_ID')}&APIKEY={os.environ.get('MFL_API_KEY')}&DETAILS=&SINCE=&PLAYERS=&JSON=1"
     response = requests.get(url)
     response.raise_for_status()
     yield response.json()
