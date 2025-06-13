@@ -7,6 +7,7 @@ def scores_resource():
     # so they will default to "" in make_api_call.
     return common.create_dlt_resource(type_name="playerScores", w="YTD")
 
+
 # Define the specific source for scores
 def scores_source():
     return common.create_dlt_source(scores_resource)

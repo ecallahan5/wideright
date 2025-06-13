@@ -6,6 +6,7 @@ def last_yr_players_resource():
     # Pass the specific year to create_dlt_resource
     return common.create_dlt_resource(type_name="players", year=config.last_league_year, details="", since="", players="")
 
+
 # Define the specific source for last year's players
 def last_yr_players_source():
     return common.create_dlt_source(last_yr_players_resource)

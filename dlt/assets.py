@@ -1,3 +1,4 @@
+
 from . import common  # Use relative import for common
 from .common import config # Make config available if it's used directly in main (though it shouldn't be for API calls now)
 
@@ -6,6 +7,7 @@ from .common import config # Make config available if it's used directly in main
 def assets_resource():
     # year defaults to config.league_year in create_dlt_resource
     return common.create_dlt_resource(type_name="assets")
+
 
 # Define the specific source for assets
 # common.create_dlt_source will be decorated with @dlt.source internally

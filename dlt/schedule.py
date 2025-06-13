@@ -7,6 +7,7 @@ def schedule_resource():
     # F corresponds to the 'franchise' parameter in make_api_call.
     return common.create_dlt_resource(type_name="schedule", w="", franchise="")
 
+
 # Define the specific source for schedule
 def schedule_source():
     return common.create_dlt_source(schedule_resource)

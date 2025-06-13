@@ -7,6 +7,7 @@ def rosters_resource():
     # Pass them as empty strings to make_api_call.
     return common.create_dlt_resource(type_name="rosters", franchise="", w="")
 
+
 # Define the specific source for rosters
 def rosters_source():
     return common.create_dlt_source(rosters_resource)

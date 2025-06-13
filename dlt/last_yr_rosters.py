@@ -7,6 +7,7 @@ def last_yr_rosters_resource():
     # The original URL had FRANCHISE=&W= which are empty.
     return common.create_dlt_resource(type_name="rosters", year=config.last_league_year, franchise="", w="")
 
+
 # Define the specific source for last year's rosters
 def last_yr_rosters_source():
     return common.create_dlt_source(last_yr_rosters_resource)

@@ -10,6 +10,7 @@ def draft_picks_resource():
 def draft_picks_source():
     return common.create_dlt_source(draft_picks_resource)
 
+
 if __name__ == "__main__":
     pipeline_name = 'mfl_draft_picks'
     dataset_name = 'draft_picks'

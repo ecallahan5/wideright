@@ -6,6 +6,7 @@ def results_resource():
     # The original URL had W=YTD and an empty MISSING_AS_BYE.
     return common.create_dlt_resource(type_name="weeklyResults", w="YTD") # MISSING_AS_BYE defaults to ""
 
+
 # Define the specific source for results
 def results_source():
     return common.create_dlt_source(results_resource)

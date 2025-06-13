@@ -8,6 +8,7 @@ def last_yr_scores_resource():
     # so they will default to "" in make_api_call.
     return common.create_dlt_resource(type_name="playerScores", year=config.last_league_year, w="YTD")
 
+
 # Define the specific source for last year's scores
 def last_yr_scores_source():
     return common.create_dlt_source(last_yr_scores_resource)

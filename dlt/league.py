@@ -5,6 +5,7 @@ def league_resource():
     # year defaults to config.league_year in create_dlt_resource
     return common.create_dlt_resource(type_name="league")
 
+
 # Define the specific source for league
 def league_source():
     return common.create_dlt_source(league_resource)

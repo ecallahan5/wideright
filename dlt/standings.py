@@ -6,6 +6,7 @@ def standings_resource():
     # Extra params like COLUMN_NAMES, ALL, WEB were empty in original URL, will default to ""
     return common.create_dlt_resource(type_name="leagueStandings")
 
+
 # Define the specific source for standings
 def standings_source():
     return common.create_dlt_source(standings_resource)
