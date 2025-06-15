@@ -30,7 +30,7 @@ jobs:
           requirement_files: requirements_github_action.txt
       - uses: syphar/restore-pip-download-cache@v1
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
-      - run: pip install -r requirements_github_action.txt
+      - run: pip install --force-reinstall -r requirements_github_action.txt
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
@@ -46,13 +46,13 @@ jobs:
       # - name: Run players script
       #   run: python 'dlt/players.py'
       - name: Run draft picks script
-        run: python 'dlt/draft_picks.py'
+        run: python -m dlt.draft_picks
       # - name: Run league script
       #   run: python 'dlt/league.py'
       # - name: Run rosters script
       #   run: python 'dlt/rosters.py'
       - name: Run assets script
-        run: python 'dlt/assets.py'
+        run: python -m dlt.assets
       # - name: Run schedule script
       #   run: python 'dlt/schedule.py'
       # - name: Run scores script
