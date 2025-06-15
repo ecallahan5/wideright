@@ -1,15 +1,44 @@
 import os
 import sys
-import dlt
-from dlt.sources.helpers import requests
+
 # Get the directory of the current script
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Get the parent directory (where config.py is)
 parent_dir = os.path.dirname(script_dir)
-# Add parent directory to sys.path
-sys.path.insert(0, parent_dir)
-# Now import config
+
+# Add parent directory to sys.path for config.py
+if parent_dir not in sys.path: # Avoid duplicate entries if already there
+    sys.path.insert(0, parent_dir)
+elif sys.path[0] != parent_dir: # If it's there but not at the start
+    sys.path.remove(parent_dir)
+    sys.path.insert(0, parent_dir)
+# else: it's already at sys.path[0]
+
 import config
+
+# Remove parent_dir from sys.path to import the actual dlt library
+# This assumes parent_dir was indeed added at sys.path[0] and is still there.
+# A more robust pop would be to find and remove it if it exists.
+# For now, stick to the plan's simpler pop(0) after confirming it was inserted at 0.
+if sys.path[0] == parent_dir:
+    sys.path.pop(0)
+else:
+    # Fallback: if parent_dir for some reason wasn't at index 0, try to remove it by value.
+    # This case should ideally not be hit if the above insertion logic is correct.
+    if parent_dir in sys.path:
+        sys.path.remove(parent_dir)
+
+# These imports should now find the installed 'dlt' library
+import dlt
+from dlt.sources.helpers import requests
+
+# Add parent_dir back to sys.path to restore the original behavior for any subsequent local imports
+# that might rely on it (though this is generally not ideal).
+if parent_dir not in sys.path: # Avoid duplicate entries
+    sys.path.insert(0, parent_dir)
+elif sys.path[0] != parent_dir: # If it's there but not at the start
+    sys.path.remove(parent_dir)
+    sys.path.insert(0, parent_dir)
 
 
 def make_api_call(type_name, year, api_key, host, league_id, details="", since="", players="", franchise="", w=""):
