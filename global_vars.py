@@ -105,4 +105,4 @@ def extract_values(obj, key):
 host = "www49.myfantasyleague.com"
 league_year = "2025" # e.g., "2024"
 league_id = "59643"
-last_league_year = "2024" # e.g., "2023"
+last_league_year = str(int(league_year) - 1) # e.g., "2023"
