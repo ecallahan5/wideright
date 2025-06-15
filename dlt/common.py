@@ -1,34 +1,75 @@
 import os
 import sys
 
-# Define parent_dir for sys.path manipulation for the dlt library import
-script_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(script_dir) # This is the project root
+# Determine project root directory more directly for clarity
+# __file__ is dlt/common.py -> os.path.dirname(__file__) is dlt/
+# os.path.dirname(os.path.dirname(__file__)) is project_root/
+project_root_abs = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Temporarily remove parent_dir (project root) from sys.path
-# to ensure the correct 'dlt' library is imported, not the local 'dlt' directory.
-original_sys_path_had_parent_dir_at_zero = False
-if sys.path[0] == parent_dir:
-    original_sys_path_had_parent_dir_at_zero = True
+original_path_zero = sys.path[0]
+path_zero_was_empty_string = False
+abs_path_was_also_in_sys_path = False # For restoring project_root_abs if it was removed separately
+
+if original_path_zero == '':
     sys.path.pop(0)
-elif parent_dir in sys.path:
-    sys.path.remove(parent_dir)
-    # Note: we are not necessarily restoring it to index 0 later if it wasn't there.
-    # This simplification assumes that if it was present but not at 0,
-    # its original position doesn't need perfect restoration for subsequent local imports from root,
-    # which are discouraged anyway.
+    path_zero_was_empty_string = True
+    # If '' was at path[0], current dir is project root.
+    # Check if the absolute path to project root is ALSO in sys.path redundantly.
+    if project_root_abs in sys.path:
+        sys.path.remove(project_root_abs)
+        abs_path_was_also_in_sys_path = True # Mark that we removed it by value
+elif original_path_zero == project_root_abs: # Path[0] was the absolute project root
+    sys.path.pop(0)
+    # No need to set path_zero_was_empty_string, original_path_zero holds the value for restoration.
+    # Check if '' is ALSO in sys.path redundantly.
+    if '' in sys.path:
+        sys.path.remove('')
+        # We don't have a flag for this specific redundant '' removal, assume it's not critical to restore if abs path was primary.
+elif project_root_abs in sys.path: # Project root was not at [0] but elsewhere
+    sys.path.remove(project_root_abs)
+    # original_path_zero is kept as is. Project root will be restored to index 0 in finally.
+# else: project root is not in sys.path explicitly, assume standard lib / site-packages will be searched.
+
+# Debug print before attempting dlt import
+print(f"DEBUG: sys.path for dlt import: {sys.path}")
 
 try:
     import dlt
+    print(f"DEBUG: dlt imported from: {dlt.__file__}") # Debug print
     from dlt.sources.helpers import requests
+    print(f"DEBUG: dlt.sources.helpers.requests imported: {requests.__file__}") # Debug print
 finally:
-    # Restore parent_dir to sys.path at index 0 if it's not already there and at index 0.
-    # This is a simplified restoration.
-    if parent_dir not in sys.path:
-        sys.path.insert(0, parent_dir)
-    elif sys.path[0] != parent_dir:
-        sys.path.remove(parent_dir) # remove from wrong place
-        sys.path.insert(0, parent_dir) # add to correct place
+    # Restore sys.path to a state that includes project root, preferably at index 0.
+    # This logic aims to be safe rather than perfectly reversible if sys.path was unusually structured.
+
+    # If path[0] was '' and we removed it:
+    if path_zero_was_empty_string:
+        if sys.path[0] != '': # If '' is not back at the start
+            sys.path.insert(0, '')
+    # Else if path[0] was project_root_abs and we removed it:
+    elif original_path_zero == project_root_abs:
+         if sys.path[0] != project_root_abs:
+            sys.path.insert(0, project_root_abs)
+    # Fallback: if project_root_abs (or '') is not in path[0], ensure one of them is.
+    # Prefer '' if that was original, else project_root_abs.
+    # This covers cases where project_root_abs was removed by value from a non-zero index.
+    else:
+        current_path_zero_is_root = (sys.path[0] == '' or sys.path[0] == project_root_abs)
+        if not current_path_zero_is_root:
+            # If original_path_zero was empty, prefer that, otherwise use abs.
+            path_to_insert = '' if (original_path_zero == '' or path_zero_was_empty_string) else project_root_abs
+            if path_to_insert not in sys.path: # Avoid adding if it's already there elsewhere
+                sys.path.insert(0, path_to_insert)
+            elif sys.path[0] != path_to_insert : # It's there, but not at [0]
+                sys.path.remove(path_to_insert)
+                sys.path.insert(0, path_to_insert)
+
+
+    # If we specifically removed project_root_abs by value because it was redundant with '' at path[0]:
+    if path_zero_was_empty_string and abs_path_was_also_in_sys_path:
+        if project_root_abs not in sys.path: # And it's still not there
+             # We choose not to re-add it if '' is already at path[0], as '' covers the project root.
+             pass
 
 
 def make_api_call(type_name, year, api_key, host, league_id, details="", since="", players="", franchise="", w=""):
