@@ -46,13 +46,13 @@ jobs:
       # - name: Run players script
       #   run: python 'dlt/players.py'
       - name: Run draft picks script
-        run: python 'dlt/draft_picks.py'
+        run: python -m dlt.draft_picks
       # - name: Run league script
       #   run: python 'dlt/league.py'
       # - name: Run rosters script
       #   run: python 'dlt/rosters.py'
       - name: Run assets script
-        run: python 'dlt/assets.py'
+        run: python -m dlt.assets
       # - name: Run schedule script
       #   run: python 'dlt/schedule.py'
       # - name: Run scores script
