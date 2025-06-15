@@ -13,6 +13,7 @@ sys.path.insert(0, parent_dir)
 
 # Now import config
 import config
+from global_vars import host, league_id, league_year, last_league_year
 
 
 @dlt.resource(write_disposition="replace")
@@ -23,7 +24,7 @@ def sourcename_resource(api_secret_key=dlt.secrets.value):
     print(headers)
 
     # make an api call here
-    url = f"https://{config.host}/{config.league_year}/export?TYPE=players&L={config.league_id}&APIKEY={config.mfl_api_key}&DETAILS=&SINCE=&PLAYERS=&JSON=1"
+    url = f"https://{host}/{league_year}/export?TYPE=players&L={league_id}&APIKEY={config.mfl_api_key}&DETAILS=&SINCE=&PLAYERS=&JSON=1"
     response = requests.get(url)
     response.raise_for_status()
     yield response.json()
