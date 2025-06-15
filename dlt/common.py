@@ -1,44 +1,34 @@
 import os
 import sys
 
-# Get the directory of the current script
+# Define parent_dir for sys.path manipulation for the dlt library import
 script_dir = os.path.dirname(os.path.abspath(__file__))
-# Get the parent directory (where config.py is)
-parent_dir = os.path.dirname(script_dir)
+parent_dir = os.path.dirname(script_dir) # This is the project root
 
-# Add parent directory to sys.path for config.py
-if parent_dir not in sys.path: # Avoid duplicate entries if already there
-    sys.path.insert(0, parent_dir)
-elif sys.path[0] != parent_dir: # If it's there but not at the start
-    sys.path.remove(parent_dir)
-    sys.path.insert(0, parent_dir)
-# else: it's already at sys.path[0]
-
-import config
-
-# Remove parent_dir from sys.path to import the actual dlt library
-# This assumes parent_dir was indeed added at sys.path[0] and is still there.
-# A more robust pop would be to find and remove it if it exists.
-# For now, stick to the plan's simpler pop(0) after confirming it was inserted at 0.
+# Temporarily remove parent_dir (project root) from sys.path
+# to ensure the correct 'dlt' library is imported, not the local 'dlt' directory.
+original_sys_path_had_parent_dir_at_zero = False
 if sys.path[0] == parent_dir:
+    original_sys_path_had_parent_dir_at_zero = True
     sys.path.pop(0)
-else:
-    # Fallback: if parent_dir for some reason wasn't at index 0, try to remove it by value.
-    # This case should ideally not be hit if the above insertion logic is correct.
-    if parent_dir in sys.path:
-        sys.path.remove(parent_dir)
-
-# These imports should now find the installed 'dlt' library
-import dlt
-from dlt.sources.helpers import requests
-
-# Add parent_dir back to sys.path to restore the original behavior for any subsequent local imports
-# that might rely on it (though this is generally not ideal).
-if parent_dir not in sys.path: # Avoid duplicate entries
-    sys.path.insert(0, parent_dir)
-elif sys.path[0] != parent_dir: # If it's there but not at the start
+elif parent_dir in sys.path:
     sys.path.remove(parent_dir)
-    sys.path.insert(0, parent_dir)
+    # Note: we are not necessarily restoring it to index 0 later if it wasn't there.
+    # This simplification assumes that if it was present but not at 0,
+    # its original position doesn't need perfect restoration for subsequent local imports from root,
+    # which are discouraged anyway.
+
+try:
+    import dlt
+    from dlt.sources.helpers import requests
+finally:
+    # Restore parent_dir to sys.path at index 0 if it's not already there and at index 0.
+    # This is a simplified restoration.
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    elif sys.path[0] != parent_dir:
+        sys.path.remove(parent_dir) # remove from wrong place
+        sys.path.insert(0, parent_dir) # add to correct place
 
 
 def make_api_call(type_name, year, api_key, host, league_id, details="", since="", players="", franchise="", w=""):
@@ -69,7 +59,7 @@ def make_api_call(type_name, year, api_key, host, league_id, details="", since="
 def create_dlt_resource(type_name, year=None, api_key=dlt.secrets.value, details="", since="", players="", franchise="", w=""):
     """Creates a DLT resource that makes an API call and yields the JSON response."""
     if year is None:
-        year = config.league_year
+        year = os.getenv("LEAGUE_YEAR")
 
     # The MFL API key is passed directly from config, not as a dlt.secret
     # _create_auth_headers is not used by these MFL API calls
@@ -77,10 +67,10 @@ def create_dlt_resource(type_name, year=None, api_key=dlt.secrets.value, details
 
     data = make_api_call(
         type_name=type_name,
-        year=year,
-        api_key=config.mfl_api_key,  # Use the API key from config
-        host=config.host,
-        league_id=config.league_id,
+        year=year, # year is already correctly sourced or passed
+        api_key=os.getenv("MFL_API_KEY"),
+        host=os.getenv("HOST"),
+        league_id=os.getenv("LEAGUE_ID"),
         details=details,
         since=since,
         players=players,
