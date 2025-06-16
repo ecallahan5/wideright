@@ -1,31 +1,19 @@
 
-import os
-import sys
 import dlt
 from dlt.sources.helpers import requests
 from .common import _create_auth_headers, create_dlt_pipeline
-
-# Get the directory of the current script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-# Get the parent directory (where config.py is)
-parent_dir = os.path.dirname(script_dir)
-# Add parent directory to sys.path
-sys.path.insert(0, parent_dir)
-
-# Now import config
-import config
 from global_vars import host, league_id, league_year, last_league_year
 
 
 @dlt.resource(write_disposition="replace")
-def sourcename_resource(api_secret_key=dlt.secrets.value):
-    headers = _create_auth_headers(api_secret_key)
+def sourcename_resource(mfl_api_key=dlt.secrets.value):
+    headers = _create_auth_headers(mfl_api_key)
 
     # check if authentication headers look fine
     print(headers)
 
     # make an api call here
-    url = f"https://{host}/{league_year}/export?TYPE=futureDraftPicks&L={league_id}&APIKEY={config.mfl_api_key}&JSON=1"
+    url = f"https://{host}/{league_year}/export?TYPE=futureDraftPicks&L={league_id}&APIKEY={mfl_api_key}&JSON=1"
     response = requests.get(url)
     response.raise_for_status()
     yield response.json()
