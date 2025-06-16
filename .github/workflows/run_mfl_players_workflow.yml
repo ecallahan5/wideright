@@ -37,20 +37,20 @@ jobs:
       - name: 'Use gcloud CLI'
         run: 'gcloud info'
       # - name: Run players script
-      #   run: python 'dlt/players.py'
+      #   run: python -m dlt.players
       - name: Run draft picks script
-        run: python 'dlt/draft_picks.py'
+        run: python -m dlt.draft_picks
       # - name: Run league script
-      #   run: python 'dlt/league.py'
+      #   run: python -m dlt.league
       # - name: Run rosters script
-      #   run: python 'dlt/rosters.py'
+      #   run: python -m dlt.rosters
       - name: Run assets script
-        run: python 'dlt/assets.py'
+        run: python -m dlt.assets
       # - name: Run schedule script
-      #   run: python 'dlt/schedule.py'
+      #   run: python -m dlt.schedule
       # - name: Run scores script
-      #   run: python 'dlt/scores.py'
+      #   run: python -m dlt.scores
       # - name: Run standings script
-      #   run: python 'dlt/standings.py'
+      #   run: python -m dlt.standings
       # - name: Run results script
-      #   run: python 'dlt/results.py'
+      #   run: python -m dlt.results
