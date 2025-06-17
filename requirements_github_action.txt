@@ -3,3 +3,4 @@ toml
 google-api-python-client
 google-cloud-bigquery-storage
 google-cloud-storage
+streamlit

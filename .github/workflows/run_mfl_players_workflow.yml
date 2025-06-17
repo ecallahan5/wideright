@@ -7,7 +7,7 @@ env:
   DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
   DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL: mfl-orchestrator@mfl-374514.iam.gserviceaccount.com
   DESTINATION__BIGQUERY__LOCATION: US
-  API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
+  MFL_API_KEY: ${{ secrets.API_SECRET_KEY }}
   DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY: ${{ secrets.DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY }}
 
 jobs:
@@ -37,20 +37,20 @@ jobs:
       - name: 'Use gcloud CLI'
         run: 'gcloud info'
       # - name: Run players script
-      #   run: python 'dlt/players.py'
+      #   run: python -m dlt_scripts.players
       - name: Run draft picks script
-        run: python 'dlt/draft_picks.py'
+        run: python -m dlt_scripts.draft_picks
       # - name: Run league script
-      #   run: python 'dlt/league.py'
+      #   run: python -m dlt_scripts.league
       # - name: Run rosters script
-      #   run: python 'dlt/rosters.py'
+      #   run: python -m dlt_scripts.rosters
       - name: Run assets script
-        run: python 'dlt/assets.py'
+        run: python -m dlt_scripts.assets
       # - name: Run schedule script
-      #   run: python 'dlt/schedule.py'
+      #   run: python -m dlt_scripts.schedule
       # - name: Run scores script
-      #   run: python 'dlt/scores.py'
+      #   run: python -m dlt_scripts.scores
       # - name: Run standings script
-      #   run: python 'dlt/standings.py'
+      #   run: python -m dlt_scripts.standings
       # - name: Run results script
-      #   run: python 'dlt/results.py'
+      #   run: python -m dlt_scripts.results
