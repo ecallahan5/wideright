@@ -7,8 +7,12 @@ env:
   DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
   DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL: mfl-orchestrator@mfl-374514.iam.gserviceaccount.com
   DESTINATION__BIGQUERY__LOCATION: US
-  API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
   DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY: ${{ secrets.DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY }}
+  API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }} # Keeping this for now
+  HOST: 'www49.myfantasyleague.com'
+  LEAGUE_YEAR: '2025'
+  LEAGUE_ID: '59643'
+  MFL_API_KEY: ${{ secrets.API_SECRET_KEY }}
 
 jobs:
   run_pipeline:
@@ -26,7 +30,7 @@ jobs:
           requirement_files: requirements_github_action.txt
       - uses: syphar/restore-pip-download-cache@v1
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
-      - run: pip install -r requirements_github_action.txt
+      - run: pip install --force-reinstall -r requirements_github_action.txt
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
@@ -36,10 +40,14 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v2'
       - name: 'Use gcloud CLI'
         run: 'gcloud info'
+      - name: Calculate LAST_LEAGUE_YEAR
+        run: |
+          echo "LAST_LEAGUE_YEAR=$(($LEAGUE_YEAR - 1))" >> $GITHUB_ENV
       # - name: Run players script
       #   run: python -m dlt_scripts.players
       - name: Run draft picks script
         run: python -m dlt_scripts.draft_picks
+        run: python -m dlt.draft_picks
       # - name: Run league script
       #   run: python -m dlt_scripts.league
       # - name: Run rosters script
