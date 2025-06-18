@@ -24,22 +24,13 @@ coming_soon = "https://media.istockphoto.com/id/1410983127/vector/under-construc
 norwood_avatar = avatar = "https://kubrick.htvapps.com/htv-prod-media.s3.amazonaws.com/images/scott-norwood-1486054177.jpg?crop=1.00xw:0.358xh;0,0.226xh&resize=900:*"
 
 #League Year
-cur_month = datetime.now().month
-cur_yr = datetime.now().year
 trade_dl = '2023-11-23'
 taxi_dl = '2023-11-16'
-
-if cur_month > 2:
-    league_yr_calc = cur_yr # Renamed to avoid conflict with new league_year
-else:
-    league_yr_calc = cur_yr-1 # Renamed to avoid conflict with new league_year
 
 #League Data
 @st.cache_data(ttl=dt.timedelta(days=1))
 def get_league_mfl_data():
-    # league_url = f'https://www49.myfantasyleague.com/{league_yr}/export?TYPE=league&L=59643&APIKEY=&JSON=1' # Original line, commented out
-    # Using league_yr_calc for now, will be updated later to use the new config variables
-    league_url = f'https://www49.myfantasyleague.com/{league_yr_calc}/export?TYPE=league&L=59643&APIKEY=&JSON=1'
+    league_url = f'https://www49.myfantasyleague.com/{league_year}/export?TYPE=league&L=59643&APIKEY=&JSON=1'
     r = requests.get(url=league_url)
     r.raise_for_status()  # Raise an exception for bad status codes
     return r.json()["league"]
@@ -52,8 +43,7 @@ contract_cap = 42 # This is hardcoded
 max_contract_yrs = 5
 
 #Contract Years Lookup
-# Using league_yr_calc for now, will be updated later to use the new config variables
-yr_list = list(range(league_yr_calc, league_yr_calc+max_contract_yrs,1))
+yr_list = list(range(int(league_year), int(league_year)+max_contract_yrs,1))
 contract_yrs = list(range(1,max_contract_yrs+1,1))
 zipped_list = list(zip(contract_yrs, yr_list))
 cols = ["Contract Length", "Year"]

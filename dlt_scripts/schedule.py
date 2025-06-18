@@ -1,7 +1,7 @@
 import dlt
 from dlt.sources.helpers import requests
 from .common import _create_auth_headers, create_dlt_pipeline
-from global_vars import host, league_id, league_year, last_league_year
+from global_vars import host, league_id, league_year
 
 
 @dlt.resource(write_disposition="replace")
