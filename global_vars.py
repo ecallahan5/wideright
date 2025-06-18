@@ -4,18 +4,6 @@ import requests
 import pandas as pd
 import streamlit as st
 
-# Endpoints
-franchises_URL = "https://wideright.app/api/v1/franchises"
-picks_URL = "https://www49.myfantasyleague.com/2023/export?TYPE=futureDraftPicks&L=59643&APIKEY=ahFi18iVvuWtx02mPVDHZTEeF7ox&JSON=1"
-rosters_URL = "https://wideright.app/api/v1/rosters"
-players_URL = 'https://www49.myfantasyleague.com/2023/export?TYPE=players&L=59643&APIKEY=&DETAILS=&SINCE=&PLAYERS=&JSON=1'
-players_URL_wr = 'https://wideright.app/api/v1/players'
-schedule_URL = 'https://wideright.app/api/v1/schedule'
-probs_URL = 'https://wideright.app/api/v1/colab/playoff-model'
-standings_URL = "https://wideright.app/api/v1/standings"
-calendar_URL = 'https://www49.myfantasyleague.com/2023/export?TYPE=calendar&L=59643&APIKEY=ahFi18iVvuWsx1SmPVDHZTEeF7ox&JSON=1'
-extensions_url = 'https://wideright.app/api/v1/contract-extensions'
-
 #Images
 dollar_icon = "https://icons.veryicon.com/png/o/business/business-icon-2/money-42.png"
 contract_icon = "https://cdn-icons-png.flaticon.com/512/126/126249.png"
@@ -34,6 +22,17 @@ taxi_dl = '2023-11-16'
 host = "www49.myfantasyleague.com"
 league_id = "59643"
 
+# Endpoints
+franchises_URL = "https://wideright.app/api/v1/franchises"
+picks_URL = f"https://{host}/2023/export?TYPE=futureDraftPicks&L=59643&APIKEY=ahFi18iVvuWtx02mPVDHZTEeF7ox&JSON=1"
+rosters_URL = "https://wideright.app/api/v1/rosters"
+players_URL = f'https://{host}/2023/export?TYPE=players&L=59643&APIKEY=&DETAILS=&SINCE=&PLAYERS=&JSON=1'
+players_URL_wr = 'https://wideright.app/api/v1/players'
+schedule_URL = 'https://wideright.app/api/v1/schedule'
+probs_URL = 'https://wideright.app/api/v1/colab/playoff-model'
+standings_URL = "https://wideright.app/api/v1/standings"
+calendar_URL = f'https://{host}/2023/export?TYPE=calendar&L=59643&APIKEY=ahFi18iVvuWsx1SmPVDHZTEeF7ox&JSON=1'
+extensions_url = 'https://wideright.app/api/v1/contract-extensions'
 
 if cur_month > 2:
     league_year = cur_yr # Renamed to avoid conflict with new league_year
