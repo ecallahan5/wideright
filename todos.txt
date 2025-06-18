@@ -1,6 +1,5 @@
 -- Python cleanup
     - Sean 3/28
-        - make hostname a variable
         - week calculations need to move to global vars
     - webhook embeds?
 
