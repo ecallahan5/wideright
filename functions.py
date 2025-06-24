@@ -1,13 +1,24 @@
 import streamlit as st
 import requests
 import global_vars
-import config
 import datetime
 import pandas as pd
 from google.oauth2 import service_account
 from google.cloud import bigquery
+import dlt # <--- Import the dlt library
 
-site_token = config.key
+# --- NEW SECTION TO LOAD SECRETS USING DLT ---
+# DLT will automatically find secrets from environment variables (in production)
+# or from .dlt/secrets.toml (for local development).
+
+try:
+    # Access secrets directly through dlt's configuration system
+    site_token = dlt.secrets["site_token"]
+    gcp_creds = dlt.secrets["gcp_service_account"]
+
+except KeyError as e:
+    st.error(f"Secret not found: {e}. Please ensure it's in your .dlt/secrets.toml or set as an environment variable.")
+    st.stop()
 
 # Get the list of teams
 # @st.cache_data(show_spinner="Getting Teams...", ttl=datetime.timedelta(days=1))
@@ -92,13 +103,26 @@ SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets.readonly'  # Read-only access to Google Sheets
 ]
 
-# Create API client.
+############################
+
+# --- GCP AUTHENTICATION USING DLT SECRETS ---
+
+# This code is now much cleaner and more secure.
 credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"], scopes=SCOPES
+    gcp_creds, scopes=SCOPES
 )
 
-# Create BigQuery client
-client = bigquery.Client(credentials=credentials, project=st.secrets["gcp_service_account"]["project_id"])
+client = bigquery.Client(credentials=credentials, project=gcp_creds["project_id"])
+
+############################
+
+# Create API client.
+# credentials = service_account.Credentials.from_service_account_info(
+#     st.secrets["gcp_service_account"], scopes=SCOPES
+# )
+
+# # Create BigQuery client
+# client = bigquery.Client(credentials=credentials, project=st.secrets["gcp_service_account"]["project_id"])
 
 # Perform query.
 # Uses st.cache_data to only rerun when the query changes or after 1 day.
