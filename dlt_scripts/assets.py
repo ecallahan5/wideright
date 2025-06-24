@@ -18,8 +18,8 @@ def sourcename_resource(mfl_api_key=dlt.secrets.value):
     yield response.json()
 
 @dlt.source
-def sourcename_source():
-    yield sourcename_resource
+def sourcename_source(assets_resource):
+    yield assets_resource
 
 
 if __name__ == "__main__":
