@@ -5,11 +5,9 @@ from global_vars import host, league_id, league_year, last_league_year
 
 
 @dlt.resource(write_disposition="replace")
-def sourcename_resource(mfl_api_key=dlt.secrets.value):
-    headers = _create_auth_headers(mfl_api_key)
-
-    # check if authentication headers look fine
-    print(headers)
+def last_yr_scores_resource(mfl_api_key=dlt.secrets.value):
+    # headers = _create_auth_headers(mfl_api_key) # Not used by MFL API if key is in URL
+    # print(headers)
 
     # make an api call here
     url = f"https://{host}/{last_league_year}/export?TYPE=playerScores&L={league_id}&APIKEY={mfl_api_key}&W=YTD&YEAR=&PLAYERS=&POSITION=&STATUS=&RULES=&COUNT=&JSON=1"
@@ -18,14 +16,14 @@ def sourcename_resource(mfl_api_key=dlt.secrets.value):
     yield response.json()
 
 @dlt.source
-def sourcename_source(sourcename_resource_func=dlt.secrets.value):
-    yield sourcename_resource_func
+def last_yr_scores_source(resource_func):
+    yield resource_func
 
 
 if __name__ == "__main__":
     create_dlt_pipeline(
         pipeline_name='mfl_last_yr_scores',
         dataset_name='last_yr_scores',
-        resource_func=sourcename_resource,
-        source_func=sourcename_source
+        resource_func=last_yr_scores_resource,
+        source_func=last_yr_scores_source
     )
