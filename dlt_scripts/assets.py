@@ -18,7 +18,40 @@ def assets_resource(mfl_api_key=dlt.secrets.value):
         response = requests.get(url, timeout=30) # Added timeout
         response.raise_for_status()
         print("[assets_resource] API request successful.")
-        yield response.json()
+
+        api_data = response.json()
+        print(f"[assets_resource] API response type: {type(api_data)}")
+
+        if isinstance(api_data, dict):
+            print(f"[assets_resource] API response top-level keys: {list(api_data.keys())}")
+
+            # Inspect common MFL structure for assets, e.g. response -> assets -> asset list
+            assets_outer_dict = api_data.get('assets')
+            if isinstance(assets_outer_dict, dict):
+                print(f"[assets_resource] 'assets' field is a dict. Keys: {list(assets_outer_dict.keys())}")
+                asset_list_or_dict = assets_outer_dict.get('asset')
+                if isinstance(asset_list_or_dict, list):
+                    print(f"[assets_resource] 'assets.asset' is a list. Length: {len(asset_list_or_dict)}")
+                    if len(asset_list_or_dict) > 0 and isinstance(asset_list_or_dict[0], dict):
+                        print(f"[assets_resource] First item in 'assets.asset' list has keys: {list(asset_list_or_dict[0].keys())}")
+                elif isinstance(asset_list_or_dict, dict):
+                     print(f"[assets_resource] 'assets.asset' is a dict. Keys: {list(asset_list_or_dict.keys())}")
+                elif asset_list_or_dict is None:
+                    print("[assets_resource] 'assets.asset' field is None.")
+                else:
+                    print(f"[assets_resource] 'assets.asset' field is of unexpected type: {type(asset_list_or_dict)}")
+            elif assets_outer_dict is None:
+                print("[assets_resource] 'assets' field is None in API response.")
+            else:
+                print(f"[assets_resource] 'assets' field is of unexpected type: {type(assets_outer_dict)}")
+
+        elif isinstance(api_data, list):
+            print(f"[assets_resource] API response is a list. Length: {len(api_data)}")
+            if len(api_data) > 0 and isinstance(api_data[0], dict):
+                 print(f"[assets_resource] First item in API response list has keys: {list(api_data[0].keys())}")
+
+        yield api_data
+
     except requests.exceptions.RequestException as e:
         print(f"[assets_resource] API request failed: {e}")
         raise # Re-raise the exception to be caught by the main block or DLT
