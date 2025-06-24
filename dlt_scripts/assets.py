@@ -9,6 +9,8 @@ def assets_resource(mfl_api_key=dlt.secrets.value):
     # headers = _create_auth_headers(mfl_api_key) # Not used by MFL API if key is in URL
     # print(headers)
 
+    # Log the league_year being used for this resource call
+    print(f"[assets_resource] Using league_year from global_vars: {league_year}")
     print(f"[assets_resource] Entered. MFL API Key (from dlt.secrets.value) starts with: {str(mfl_api_key)[:5]}..." if mfl_api_key and len(str(mfl_api_key)) > 5 else "[assets_resource] MFL API Key from dlt.secrets.value is short or not set.")
 
     # make an api call here
@@ -24,6 +26,9 @@ def assets_resource(mfl_api_key=dlt.secrets.value):
 
         if isinstance(api_data, dict):
             print(f"[assets_resource] API response top-level keys: {list(api_data.keys())}")
+            # Log the 'error' field if it exists
+            if 'error' in api_data:
+                print(f"[assets_resource] API Error field content: {api_data.get('error')}")
 
             # Inspect common MFL structure for assets, e.g. response -> assets -> asset list
             assets_outer_dict = api_data.get('assets')
@@ -41,7 +46,7 @@ def assets_resource(mfl_api_key=dlt.secrets.value):
                 else:
                     print(f"[assets_resource] 'assets.asset' field is of unexpected type: {type(asset_list_or_dict)}")
             elif assets_outer_dict is None:
-                print("[assets_resource] 'assets' field is None in API response.")
+                print("[assets_resource] 'assets' field is None in API response.") # This was hit in previous log
             else:
                 print(f"[assets_resource] 'assets' field is of unexpected type: {type(assets_outer_dict)}")
 
