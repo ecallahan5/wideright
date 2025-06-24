@@ -5,11 +5,9 @@ from global_vars import host, league_id, league_year
 
 
 @dlt.resource(write_disposition="replace")
-def sourcename_resource(mfl_api_key=dlt.secrets.value):
-    headers = _create_auth_headers(mfl_api_key)
-
-    # check if authentication headers look fine
-    print(headers)
+def assets_resource(mfl_api_key=dlt.secrets.value):
+    # headers = _create_auth_headers(mfl_api_key) # Not used by MFL API if key is in URL
+    # print(headers)
 
     # make an api call here
     url = f"https://{host}/{league_year}/export?TYPE=assets&L={league_id}&APIKEY={mfl_api_key}&JSON=1"
@@ -18,8 +16,8 @@ def sourcename_resource(mfl_api_key=dlt.secrets.value):
     yield response.json()
 
 @dlt.source
-def sourcename_source(assets_resource):
-    yield assets_resource
+def assets_source(resource_func): # Changed argument name to be generic like others
+    yield resource_func
 
 
 if __name__ == "__main__":
@@ -28,6 +26,6 @@ if __name__ == "__main__":
     create_dlt_pipeline(
         pipeline_name='mfl_assets',
         dataset_name='assets',
-        resource_func=sourcename_resource,
-        source_func=sourcename_source
+        resource_func=assets_resource, # Use the renamed resource
+        source_func=assets_source # Use the renamed source
     )
