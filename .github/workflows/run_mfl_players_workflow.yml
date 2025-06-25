@@ -7,7 +7,8 @@ env:
   DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID: mfl-374514
   DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL: mfl-orchestrator@mfl-374514.iam.gserviceaccount.com
   DESTINATION__BIGQUERY__LOCATION: US
-  MFL_API_KEY: ${{ secrets.API_SECRET_KEY }}
+  MFL_API_KEY: ${{ secrets.MFL_API_KEY }}
+  MFL_USER_ID: ${{ secrets.MFL_USER_ID }}  # <-- ADD THIS LINE
   DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY: ${{ secrets.DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY }}
 
 jobs:
@@ -36,6 +37,35 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v2'
       - name: 'Use gcloud CLI'
         run: 'gcloud info'
+
+      - name: Check DLT Environment Variables
+        run: |
+          echo "--- Checking DLT Environment Variables ---"
+          echo "MFL_API_KEY is set: ${{ env.MFL_API_KEY != '' }}"
+
+          echo "--- General BigQuery Destination Credentials (from workflow env block) ---"
+          echo "DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID (hardcoded): $DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID"
+          echo "DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL (hardcoded): $DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL"
+          echo "DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY is set: ${{ env.DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY != '' }}"
+          echo "DESTINATION__BIGQUERY__LOCATION (hardcoded): $DESTINATION__BIGQUERY__LOCATION"
+
+          echo "--- Pipeline-Specific Checks (Example: mfl_assets) ---"
+          echo "MFL_ASSETS__DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID is set: ${{ env.MFL_ASSETS__DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID != '' }}"
+          echo "MFL_ASSETS__DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL is set: ${{ env.MFL_ASSETS__DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL != '' }}"
+          echo "MFL_ASSETS__DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY is set: ${{ env.MFL_ASSETS__DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY != '' }}"
+
+          echo "--- Pipeline-Specific Checks (Example: mfl_players) ---"
+          echo "MFL_PLAYERS__DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID is set: ${{ env.MFL_PLAYERS__DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID != '' }}"
+          echo "MFL_PLAYERS__DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL is set: ${{ env.MFL_PLAYERS__DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL != '' }}"
+          echo "MFL_PLAYERS__DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY is set: ${{ env.MFL_PLAYERS__DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY != '' }}"
+
+          echo "--- Checking GOOGLE_APPLICATION_CREDENTIALS (set by google-github-actions/auth) ---"
+          echo "GOOGLE_APPLICATION_CREDENTIALS is set: ${{ env.GOOGLE_APPLICATION_CREDENTIALS != '' }}"
+          if [[ "${{ env.GOOGLE_APPLICATION_CREDENTIALS }}" != "" ]]; then
+            echo "GOOGLE_APPLICATION_CREDENTIALS value: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}"
+          fi
+          echo "--- End DLT Environment Variable Check ---"
+
       # - name: Run players script
       #   run: python -m dlt_scripts.players
       - name: Run draft picks script
