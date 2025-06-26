@@ -63,9 +63,6 @@ def assets_source(resource_func): # Changed argument name to be generic like oth
 
 
 if __name__ == "__main__":
-int("[assets.py] Script finished.")
-    # configure the pipeline with your destination details
-    # Transformed data will be loaded to BigQuery tables with names matching the resource names
     create_dlt_pipeline(
         pipeline_name='mfl_assets',
         dataset_name='assets',
