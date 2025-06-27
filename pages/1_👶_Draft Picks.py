@@ -22,6 +22,12 @@ teams_df = pd.DataFrame(teams)
 picks_clean = picks_df.drop(["pick_owner"], axis = 1).rename(columns={"year": "Year", "round_num": "Round", "pick_num": "Pick"}).sort_values(["Year", "Round"])
 
 # Create filters    
+team_select = st.multiselect(
+    'Choose the Teams',
+    sorted(teams_df["franchise_name"].unique()),
+    sorted(teams_df["franchise_name"].unique()),
+    help = "Filter the picks for specific rounds.")
+
 year_select = st.multiselect(
     'Choose the Years',
     sorted(picks_df["year"].unique()),
@@ -42,17 +48,40 @@ mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
 #Table style
 st.html("<style>  thead tr th:first-child {display:none}tbody th {display:none} ")
 
-# Populating the grid with data
-id_list = teams_df["franchise_id"].unique()
-i = 0
-for row_num in list(range(grid_row_count)):
-    for col_num in list(range(grid_col_count)):
-        mygrid[row_num][col_num].subheader(teams_df.loc[teams_df["franchise_id"] == id_list[i]]["franchise_name"].values[0], divider = True)
-        mygrid[row_num][col_num].image(teams_df.loc[teams_df["franchise_id"] == id_list[i]]["icon"].values[0])
-        mygrid[row_num][col_num].table(picks_clean.loc[(picks_df["pick_owner"] == id_list[i]) & (picks_df["year"].isin(year_select)) & (picks_df["round_num"].isin(round_select))])
 
-        i +=1
+selected_team_names = team_select
 
+# Flatten the grid for easier and safer iteration
+grid_cells = [col for row in mygrid for col in row]
+
+# Iterate over the selected teams and the grid cells at the same time.
+# zip() gracefully stops when it runs out of teams or grid cells.
+for team_name, cell in zip(selected_team_names, grid_cells):
+    
+    # Find the team's full details using its name
+    team_info = teams_df.loc[teams_df["franchise_name"] == team_name]
+
+    # Ensure the team was actually found before proceeding
+    if not team_info.empty:
+        # Extract the ID and icon URL from the found data
+        franchise_id = team_info["franchise_id"].values[0]
+        icon_url = team_info["icon"].values[0]
+        
+        # 1. Populate the subheader and image in the cell
+        cell.subheader(team_name, divider=True)
+        cell.image(icon_url)
+
+        # 2. Use the correct franchise_id to filter the picks
+        filtered_picks = picks_clean.loc[
+            (picks_df["pick_owner"] == franchise_id) &
+            (picks_df["year"].isin(year_select)) &
+            (picks_df["round_num"].isin(round_select))
+        ]
+        
+        # 3. Display the filtered table of picks
+        cell.table(filtered_picks)
+
+# --- End of Replacement Code ---
 
 
 
