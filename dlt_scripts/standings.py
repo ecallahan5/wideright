@@ -25,5 +25,6 @@ if __name__ == "__main__":
         pipeline_name='mfl_standings',
         dataset_name='standings',
         resource_func=standings_resource,
-        source_func=standings_source
+        source_func=standings_source,
+        write_disposition="replace"
     )

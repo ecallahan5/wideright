@@ -12,11 +12,11 @@ def create_dlt_pipeline(pipeline_name, dataset_name, resource_func, source_func,
     Defaults to 'append' if write_disposition is None, which should create tables if they don't exist.
     If 'replace' is specified, it will be used directly.
     """
-
+    
     effective_write_disposition = write_disposition if write_disposition is not None else "append"
 
     print(f"Running pipeline '{pipeline_name}' with effective_write_disposition: {effective_write_disposition}")
-
+    
     pipeline = dlt.pipeline(
         pipeline_name=pipeline_name,
         destination='bigquery',

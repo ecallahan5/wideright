@@ -25,6 +25,7 @@ if __name__ == "__main__":
         pipeline_name='mfl_rosters',
         dataset_name='rosters',
         resource_func=rosters_resource,
-        source_func=rosters_source
+        source_func=rosters_source,
+        write_disposition="replace"
     )
     print(load_info)

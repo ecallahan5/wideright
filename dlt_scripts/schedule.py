@@ -25,5 +25,6 @@ if __name__ == "__main__":
         pipeline_name='mfl_schedule',
         dataset_name='schedule',
         resource_func=schedule_resource,
-        source_func=schedule_source
+        source_func=schedule_source,
+        write_disposition="replace"
     )
