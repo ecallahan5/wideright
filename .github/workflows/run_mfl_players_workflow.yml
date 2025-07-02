@@ -72,8 +72,8 @@ jobs:
         run: python -m dlt_scripts.draft_picks
       # - name: Run league script
       #   run: python -m dlt_scripts.league
-      # - name: Run rosters script
-      #   run: python -m dlt_scripts.rosters
+      - name: Run rosters script
+        run: python -m dlt_scripts.rosters
       - name: Run assets script
         run: python -m dlt_scripts.assets
       # - name: Run schedule script
