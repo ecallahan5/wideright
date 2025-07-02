@@ -29,4 +29,5 @@ if __name__ == "__main__":
         resource_func=draft_picks_resource,
         source_func=draft_picks_source,
         force_create_mode=force_create
+
     )

@@ -11,7 +11,7 @@ def create_dlt_pipeline(pipeline_name, dataset_name, resource_func, source_func,
     If force_create_mode is True, uses 'replace' disposition and 'drop_sources' refresh mode.
     Otherwise, defaults to 'append' if write_disposition is None.
     """
-
+    
     pipeline_obj = dlt.pipeline(
         pipeline_name=pipeline_name,
         destination='bigquery',
@@ -27,9 +27,9 @@ def create_dlt_pipeline(pipeline_name, dataset_name, resource_func, source_func,
         run_options["refresh"] = "drop_sources"
     elif effective_write_disposition is None:
         effective_write_disposition = "append"
-
+    
     run_options["write_disposition"] = effective_write_disposition
-
+    
     print(f"Running pipeline '{pipeline_name}' with options: {run_options}")
 
     try:

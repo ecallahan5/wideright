@@ -29,4 +29,5 @@ if __name__ == "__main__":
         resource_func=scores_resource,
         source_func=scores_source,
         force_create_mode=force_create
+
     )

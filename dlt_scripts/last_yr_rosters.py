@@ -29,4 +29,5 @@ if __name__ == "__main__":
         resource_func=last_yr_rosters_resource,
         source_func=last_yr_rosters_source,
         force_create_mode=force_create
+
     )

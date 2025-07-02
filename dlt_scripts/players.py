@@ -29,4 +29,5 @@ if __name__ == "__main__":
         resource_func=players_resource,
         source_func=players_source,
         force_create_mode=force_create
+
     )
