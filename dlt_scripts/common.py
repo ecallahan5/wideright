@@ -1,37 +1,43 @@
 import dlt
 from dlt.sources.helpers import requests
-# from dlt.destinations.exceptions import DatabaseUndefinedRelation # Not needed for this simpler logic
 
 def _create_auth_headers(api_secret_key):
     """Constructs Bearer type authorization header which is the most common authorization method"""
     headers = {"Authorization": f"Bearer {api_secret_key}"}
     return headers
 
-def create_dlt_pipeline(pipeline_name, dataset_name, resource_func, source_func, write_disposition=None):
+def create_dlt_pipeline(pipeline_name, dataset_name, resource_func, source_func, write_disposition=None, force_create_mode=False):
     """Creates and runs a DLT pipeline.
-    Defaults to 'append' if write_disposition is None, which should create tables if they don't exist.
-    If 'replace' is specified, it will be used directly.
+    If force_create_mode is True, uses 'replace' disposition and 'drop_sources' refresh mode.
+    Otherwise, defaults to 'append' if write_disposition is None.
     """
     
-    effective_write_disposition = write_disposition if write_disposition is not None else "append"
-
-    print(f"Running pipeline '{pipeline_name}' with effective_write_disposition: {effective_write_disposition}")
-    
-    pipeline = dlt.pipeline(
+    pipeline_obj = dlt.pipeline(
         pipeline_name=pipeline_name,
         destination='bigquery',
         dataset_name=dataset_name
     )
 
+    run_options = {}
+    effective_write_disposition = write_disposition
+
+    if force_create_mode:
+        print(f"Pipeline '{pipeline_name}': force_create_mode is True. Using 'replace' disposition and 'drop_sources' refresh mode.")
+        effective_write_disposition = "replace"
+        run_options["refresh"] = "drop_sources"
+    elif effective_write_disposition is None:
+        effective_write_disposition = "append"
+    
+    run_options["write_disposition"] = effective_write_disposition
+    
+    print(f"Running pipeline '{pipeline_name}' with options: {run_options}")
+
     try:
         # Apply the resource_func to the source_func before passing to pipeline.run
-        load_info = pipeline.run(source_func(resource_func), write_disposition=effective_write_disposition)
-        print(f"Pipeline '{pipeline_name}' completed successfully with {effective_write_disposition}.")
+        load_info = pipeline_obj.run(source_func(resource_func), **run_options)
+        print(f"Pipeline '{pipeline_name}' completed successfully with options: {run_options}")
         print(load_info)
         return load_info
     except Exception as e:
-        print(f"An error occurred during pipeline '{pipeline_name}' run with {effective_write_disposition}: {e}")
-        # This will catch any error, including credential errors or actual BigQuery errors.
-        # If 'append' fails to create a table, the error message from BigQuery/dlt should indicate why.
-        # If 'replace' fails (e.g., table not found for truncate), this will also be caught.
+        print(f"An error occurred during pipeline '{pipeline_name}' run with options {run_options}: {e}")
         raise
