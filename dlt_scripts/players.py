@@ -1,3 +1,4 @@
+import os
 import dlt
 from dlt.sources.helpers import requests
 from .common import _create_auth_headers, create_dlt_pipeline
@@ -21,9 +22,11 @@ def players_source(resource_func):
 
 
 if __name__ == "__main__":
+    force_create = os.getenv("FORCE_DLT_CREATE_MODE", "false").lower() == "true"
     create_dlt_pipeline(
         pipeline_name='mfl_players',
         dataset_name='players',
         resource_func=players_resource,
-        source_func=players_source
+        source_func=players_source,
+        force_create_mode=force_create
     )

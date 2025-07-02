@@ -1,3 +1,4 @@
+import os
 import dlt
 from dlt.sources.helpers import requests
 from .common import _create_auth_headers, create_dlt_pipeline
@@ -21,9 +22,12 @@ def rosters_source(resource_func):
 
 
 if __name__ == "__main__":
-    create_dlt_pipeline(
+    force_create = os.getenv("FORCE_DLT_CREATE_MODE", "false").lower() == "true"
+    load_info = create_dlt_pipeline(
         pipeline_name='mfl_rosters',
         dataset_name='rosters',
         resource_func=rosters_resource,
-        source_func=rosters_source
+        source_func=rosters_source,
+        force_create_mode=force_create
     )
+    print(load_info)
