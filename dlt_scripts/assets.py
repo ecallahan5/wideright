@@ -70,5 +70,5 @@ if __name__ == "__main__":
         dataset_name='assets',
         resource_func=assets_resource,
         source_func=assets_source,
-        force_create_mode=force_create
+        force_create_mode=force_create )
 
