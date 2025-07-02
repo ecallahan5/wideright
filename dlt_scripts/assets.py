@@ -67,5 +67,6 @@ if __name__ == "__main__":
         pipeline_name='mfl_assets',
         dataset_name='assets',
         resource_func=assets_resource, # Use the renamed resource
-        source_func=assets_source # Use the renamed source
+        source_func=assets_source, # Use the renamed source
+        write_disposition="replace"
     )

@@ -25,5 +25,6 @@ if __name__ == "__main__":
         pipeline_name='mfl_last_yr_players',
         dataset_name='last_yr_players',
         resource_func=last_yr_players_resource,
-        source_func=last_yr_players_source
+        source_func=last_yr_players_source,
+        write_disposition="replace"
     )

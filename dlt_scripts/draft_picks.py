@@ -25,5 +25,6 @@ if __name__ == "__main__":
         pipeline_name='mfl_draft_picks',
         dataset_name='draft_picks',
         resource_func=draft_picks_resource, # Use the renamed resource
-        source_func=draft_picks_source # Use the renamed source
+        source_func=draft_picks_source, # Use the renamed source
+        write_disposition="replace"
     )
