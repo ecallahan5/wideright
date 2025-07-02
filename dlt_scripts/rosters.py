@@ -21,9 +21,10 @@ def rosters_source(resource_func):
 
 
 if __name__ == "__main__":
-    create_dlt_pipeline(
+    load_info = create_dlt_pipeline(
         pipeline_name='mfl_rosters',
         dataset_name='rosters',
         resource_func=rosters_resource,
         source_func=rosters_source
     )
+    print(load_info)
