@@ -79,4 +79,3 @@ for team_name, cell in zip(selected_team_names, grid_cells):
         
         # 3. Display the filtered table of picks
         cell.table(filtered_picks)
-
