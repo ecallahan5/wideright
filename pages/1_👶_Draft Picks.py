@@ -48,7 +48,6 @@ mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
 #Table style
 st.html("<style>  thead tr th:first-child {display:none}tbody th {display:none} ")
 
-
 selected_team_names = team_select
 
 # Flatten the grid for easier and safer iteration
