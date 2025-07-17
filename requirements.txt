@@ -1,4 +1,4 @@
 pandas==1.5.3
 dlt[bigquery]>=0.4.7
 google-cloud-bigquery==3.25.0
-
+typing-extensions>=4.0.0
