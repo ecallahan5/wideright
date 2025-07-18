@@ -4,8 +4,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
       - name: upgrading streamlit
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -14,11 +12,7 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            scp requirements.txt ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/tmp/requirements.txt
             pip3 install --upgrade pip
             pip3 install --upgrade streamlit
-            pip3 uninstall dlt dlt-telemetry typing-extensions -y
-            pip3 install --no-cache-dir -r /tmp/requirements.txt
-            pip show typing-extensions
             sudo supervisorctl restart streamlit
             streamlit cache clear
