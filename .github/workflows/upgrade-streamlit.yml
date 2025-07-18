@@ -1,9 +1,10 @@
-name: Upgrade Streamlit
 on: workflow_dispatch
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-      - name: Deploy and Upgrade
+    steps: # <-- This line was missing
+      - name: Deploy and Upgrade # <-- This line must be indented under 'steps'
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.HOST }}
@@ -13,6 +14,8 @@ jobs:
           script: |
             # Remove the old system-level package to resolve path conflict
             sudo rm -rf /usr/local/lib/python3.8/dist-packages/typing_extensions*
+
+            # The rest of your script
             cd /home/forge/streamlit
             git pull
             pip3 install --upgrade pip
