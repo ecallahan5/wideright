@@ -4,7 +4,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: upgrading streamlit
+      - name: Deploy and Upgrade
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.HOST }}
@@ -12,7 +12,9 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
+            cd /home/forge/streamlit
+            git pull
             pip3 install --upgrade pip
-            pip3 install --upgrade streamlit
+            pip3 install --no-cache-dir -r requirements.txt
             sudo supervisorctl restart streamlit
             streamlit cache clear
