@@ -14,5 +14,8 @@ jobs:
           script: |
             pip3 install --upgrade pip
             pip3 install --upgrade streamlit
+            pip3 uninstall dlt dlt-telemetry typing-extensions -y
+            pip3 install --no-cache-dir -r requirements.txt
+            pip show typing-extensions
             sudo supervisorctl restart streamlit
             streamlit cache clear
