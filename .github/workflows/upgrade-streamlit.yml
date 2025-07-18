@@ -4,6 +4,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
       - name: upgrading streamlit
         uses: appleboy/ssh-action@v0.1.8
         with:
