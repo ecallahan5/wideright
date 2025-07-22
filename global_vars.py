@@ -107,4 +107,5 @@ def extract_values(obj, key):
     results = extract(obj, arr, key)
     return results
 
+holdouts_voting_sheet_url = "https://docs.google.com/spreadsheets/d/1K77I0UuWow-bM9x_edG9_VVCwUfyj_JisusrpQ0s7ZY/edit?usp=sharing"
 
