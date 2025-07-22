@@ -19,14 +19,11 @@ def create_dlt_pipeline(pipeline_name, dataset_name, resource_func, source_func,
     )
 
     run_options = {}
-    effective_write_disposition = write_disposition
+    effective_write_disposition = "replace"
 
     if force_create_mode:
         print(f"Pipeline '{pipeline_name}': force_create_mode is True. Using 'replace' disposition and 'drop_sources' refresh mode.")
-        effective_write_disposition = "replace"
         run_options["refresh"] = "drop_sources"
-    elif effective_write_disposition is None:
-        effective_write_disposition = "append"
     
     run_options["write_disposition"] = effective_write_disposition
     
