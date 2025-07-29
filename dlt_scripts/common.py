@@ -1,11 +1,6 @@
 import dlt
 from dlt.sources.helpers import requests
 
-def _create_auth_headers(api_secret_key):
-    """Constructs Bearer type authorization header which is the most common authorization method"""
-    headers = {"Authorization": f"Bearer {api_secret_key}"}
-    return headers
-
 def create_dlt_pipeline(pipeline_name, dataset_name, resource_func, source_func, write_disposition=None, force_create_mode=False):
     """Creates and runs a DLT pipeline.
     """
