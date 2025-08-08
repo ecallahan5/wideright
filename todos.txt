@@ -4,8 +4,7 @@
     - webhook embeds?
 
 - dbt
-    - add salary adjustments to roster mgt site
-        -salary adjustments endpoint
+
     - for extensions, check current cap and contract year space
     - prizes left and weekly pot are manual!
 
