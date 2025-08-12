@@ -4,7 +4,6 @@
     - webhook embeds?
 
 - dbt
-
     - for extensions, check current cap and contract year space
     - prizes left and weekly pot are manual!
 
