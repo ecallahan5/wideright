@@ -78,8 +78,8 @@ jobs:
         run: python -m dlt_scripts.assets
       # - name: Run cap penalties script
       #   run: python -m dlt_scripts.cap_penalties
-      # - name: Run schedule script
-      #   run: python -m dlt_scripts.schedule
+      - name: Run schedule script
+        run: python -m dlt_scripts.schedule
       # - name: Run scores script
       #   run: python -m dlt_scripts.scores
       # - name: Run standings script

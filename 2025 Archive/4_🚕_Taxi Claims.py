@@ -1,13 +1,9 @@
 import pandas as pd
 import streamlit as st
 import requests
-import json
-import config
 import functions
 import global_vars
 from datetime import datetime, timedelta
-
-site_token = config.key
 
 st.set_page_config(layout="wide")
 
@@ -25,6 +21,9 @@ claimables_df = pd.DataFrame(claimables)
 
 # #Table style
 st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
+
+# #Table style
+st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 keep_cols = ["player_name", 'position', "ytd_pts", "current_team_name", "ffp_flag", "comp_pick"]
 
 
@@ -35,9 +34,10 @@ with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
     if team:
         st.write("Here are the players that " + team + " can claim:" )
 
+        pts_col_name = f"{global_vars.league_year} Pts"
         claimables_df = claimables_df.loc[claimables_df["claiming_team_name"] == team][keep_cols].rename \
-            ({'player_name' : 'Name', 'position' : 'Position', 'current_team_name' : 'Owner' , 'ytd_pts' : '2024 Pts'}, axis = 1).sort_values(["2024 Pts"], ascending = False)
-        claimables_df['2024 Pts'] = claimables_df['2024 Pts'].map('{:.2f}'.format)
+            ({'player_name' : 'Name', 'position' : 'Position', 'current_team_name' : 'Owner' , 'ytd_pts' : pts_col_name}, axis = 1).sort_values([pts_col_name], ascending = False)
+        claimables_df[pts_col_name] = claimables_df[pts_col_name].map('{:.2f}'.format)
         claimables_df["comp_pick"] = claimables_df["comp_pick"].fillna(0).astype(int)
         st.table(claimables_df.iloc[:, :4])
 
@@ -64,5 +64,3 @@ with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
                 r = requests.post(url = webhook_url, data = payload)
                 if r: 
                     st.toast("Your claim has been submitted!", icon='🎉')
-                    
-
