@@ -14,9 +14,21 @@ st.divider()
 
 # Import Claimables
 if current_wk >= 8:
-    claimables = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.taxi_claimables`")
+    claimables = functions.bq_query("SELECT a.*, b.discord_id as claiming_discord, c.discord_id as owning_discord\
+                                     FROM `mfl-374514.dbt_production.taxi_claimables` a \
+                                    left join `mfl-374514.external.discord` b\
+                                    on a.claiming_team_id = b.franchise_id \
+                                    left join `mfl-374514.external.discord` c\
+                                    on a.owning_team = c.franchise_id ")
 else:
-    claimables = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.taxi_claimables where ffp_flag = 0`")
+    claimables = functions.bq_query("SELECT a.*, b.discord_id as claiming_discord, c.discord_id as owning_discord\
+                                     FROM `mfl-374514.dbt_production.taxi_claimables` a \
+                                    left join `mfl-374514.external.discord` b\
+                                    on a.claiming_team_id = b.franchise_id \
+                                    left join `mfl-374514.external.discord` c\
+                                    on a.owning_team = c.franchise_id\
+                                    where ffp_flag = 0`")
+    
 claimables_df = pd.DataFrame(claimables)
 
 # #Table style
@@ -24,7 +36,7 @@ st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
 
 # #Table style
 st.markdown(global_vars.hide_table_row_index, unsafe_allow_html=True)
-keep_cols = ["player_name", 'position', "ytd_pts", "current_team_name", "ffp_flag", "comp_pick"]
+keep_cols = ["player_name", 'position', "ytd_pts", "current_team_name", "ffp_flag", "comp_pick", "claiming_discord", "owning_discord"]
 
 
 with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
@@ -54,13 +66,15 @@ with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
             st.write("Would you like to claim " + name + " from " + owner + " ?")
             claim_action = st.button("Claim him!")
             if claim_action:
-                webhook_url = 'https://discord.com/api/webhooks/1285395444209418280/YylZOUyFp0rSGfLOEg44zbnMMRfz9Pnq-lJTEKhxNr-a-4FzpJmidAQqMPp9JIws3de0'
+                webhook_url = st.secrets["discord"]["test_url"]
                 current_time = datetime.now()
                 one_week_later = (datetime.now() + timedelta(weeks=1)).strftime("%A, %B %d, %I:%M %p")
+                claiming_discord = claimables_df.loc[claimables_df["Name"] == name]["claiming_discord"].values[0]
+                owning_discord = claimables_df.loc[claimables_df["Name"] == name]["owning_discord"].values[0]
                 if claimables_df.loc[claimables_df["Name"] == name]["ffp_flag"].values[0] == 1:
-                    payload = {"content": "**" + team + "** is submitting a 🚕 claim on **" + name + "** from **" + owner + "**.  This is an FFP claim and carries draft pick compensation. The claim must be resolved by **" + one_week_later + "**."}
+                    payload = {"content": "**<@" + claiming_discord + ">** is submitting a 🚕 claim on **" + name + "** from **<@" + owning_discord + ">**.  This is an FFP claim and carries draft pick compensation. The claim must be resolved by **" + one_week_later + "**."}
                 else:
-                    payload = {"content": "**" + team + "** is submitting a 🚕 claim on **" + name + "** from **" + owner + "**. The claim must be resolved by **" + one_week_later + "**."}
+                    payload = {"content": "**<@" + claiming_discord + ">** is submitting a 🚕 claim on **" + name + "** from **<@" + owning_discord + ">**. The claim must be resolved by **" + one_week_later + "**."}
                 r = requests.post(url = webhook_url, data = payload)
                 if r: 
                     st.toast("Your claim has been submitted!", icon='🎉')
