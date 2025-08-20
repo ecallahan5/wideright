@@ -14,7 +14,7 @@ st.divider()
 
 import streamlit as st
 
-st.set_page_config(layout="wide")
+# st.set_page_config(layout="wide")
 st.header("Player Grid")
 
 image_list = [
@@ -38,26 +38,22 @@ image_list = [
 
 # --- Create the grid layout ---
 
-# Create the first row with two columns and a large gap between them
-row1_col1, row1_col2 = st.columns(2, gap="large")
+# --- Create the 1x4 layout ---
 
-# Place the first two images in the first row
-with row1_col1:
-    # Set a specific width instead of using column width
+# Create one row with four columns. A "medium" gap often looks best with more columns.
+col1, col2, col3, col4 = st.columns(4, gap="medium")
+
+# Place each image in its own column
+with col1:
     st.image(image_list[0]["url"], caption=image_list[0]["caption"], width=200)
 
-with row1_col2:
+with col2:
     st.image(image_list[1]["url"], caption=image_list[1]["caption"], width=200)
 
-
-# Create the second row with two columns
-row2_col1, row2_col2 = st.columns(2, gap="large")
-
-# Place the next two images in the second row
-with row2_col1:
+with col3:
     st.image(image_list[2]["url"], caption=image_list[2]["caption"], width=200)
 
-with row2_col2:
+with col4:
     st.image(image_list[3]["url"], caption=image_list[3]["caption"], width=200)
 #####################################################
 # VOTING

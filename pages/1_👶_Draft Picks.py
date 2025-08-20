@@ -3,7 +3,7 @@ import pandas as pd
 import global_vars
 import functions
 
-st.set_page_config(layout="wide")
+# st.set_page_config(layout="wide")
 st.title("Draft Picks")
 st.divider()
 

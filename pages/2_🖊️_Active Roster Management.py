@@ -8,7 +8,7 @@ import global_vars
 import functions
 
 
-st.set_page_config(layout="wide")
+# st.set_page_config(layout="wide")
 st.title("Roster Construction")
 st.divider()
 
