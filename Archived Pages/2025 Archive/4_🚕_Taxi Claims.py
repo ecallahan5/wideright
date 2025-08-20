@@ -42,8 +42,8 @@ keep_cols = ["player_name", 'position', "ytd_pts", "current_team_name", "ffp_fla
 with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
     st.write("What team are you claming for?")
     team = st.selectbox(
-    '', [""] + sorted(claimables_df["claiming_team_name"].unique()))
-    if team:
+    '', ["Choose your team"] + sorted(claimables_df["claiming_team_name"].unique()))
+    if team != "Choose your team":
         st.write("Here are the players that " + team + " can claim:" )
 
         pts_col_name = f"{global_vars.league_year} Pts"
