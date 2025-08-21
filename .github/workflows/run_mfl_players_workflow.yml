@@ -66,8 +66,8 @@ jobs:
           fi
           echo "--- End DLT Environment Variable Check ---"
 
-      # - name: Run players script
-      #   run: python -m dlt_scripts.players
+      - name: Run players script
+        run: python -m dlt_scripts.players
       - name: Run draft picks script
         run: python -m dlt_scripts.draft_picks
       # - name: Run league script
