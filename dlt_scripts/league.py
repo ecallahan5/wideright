@@ -5,7 +5,7 @@ from .common import create_dlt_pipeline
 from global_vars import host, league_id, league_year
 
 
-@dlt.resource(write_disposition="replace")
+@dlt.resource
 def league_resource(mfl_api_key=dlt.secrets.value):
     # make an api call here
     url = f"https://{host}/{league_year}/export?TYPE=league&L={league_id}&APIKEY={mfl_api_key}&JSON=1"
@@ -25,6 +25,6 @@ if __name__ == "__main__":
         dataset_name='league',
         resource_func=league_resource,
         source_func=league_source,
-        force_create_mode=force_create
-
+        force_create_mode=force_create,
+        write_disposition="merge"
     )
