@@ -27,7 +27,7 @@ else:
                                     on a.claiming_team_id = b.franchise_id \
                                     left join `mfl-374514.external.discord` c\
                                     on a.owning_team = c.franchise_id\
-                                    where ffp_flag = 0`")
+                                    where ffp_flag = 0")
     
 claimables_df = pd.DataFrame(claimables)
 
@@ -66,7 +66,7 @@ with st.chat_message("Norwood", avatar = global_vars.norwood_avatar):
             st.write("Would you like to claim " + name + " from " + owner + " ?")
             claim_action = st.button("Claim him!")
             if claim_action:
-                webhook_url = st.secrets["discord"]["test_url"]
+                webhook_url = st.secrets["discord"]["taxi_url"]
                 current_time = datetime.now()
                 one_week_later = (datetime.now() + timedelta(weeks=1)).strftime("%A, %B %d, %I:%M %p")
                 claiming_discord = claimables_df.loc[claimables_df["Name"] == name]["claiming_discord"].values[0]
