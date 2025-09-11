@@ -53,8 +53,7 @@ filtered_df['position_order'] = filtered_df['position'].map(global_vars.sort_map
 filtered_df = filtered_df.rename(columns={"player_name": "Name", "position": "Position", "salary": "Salary"}).sort_values('position_order')
 
 # Filter penalties for the selected team and year
-team_penalties_df = penalties_df.loc[(penalties_df["franchise_name"] == team)]
-                                    #   & (penalties_df["Penalty_Applied_Year"] == year)]
+team_penalties_df = penalties_df.loc[(penalties_df["franchise_name"] == team) & (penalties_df["Penalty_Applied_Year"] == year)]
 
 numeric_cap_used = filtered_df["Salary"].sum()
 numeric_cap_penalties = team_penalties_df["cap_penalty"].sum()
