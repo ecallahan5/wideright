@@ -84,6 +84,8 @@ jobs:
         run: python -m dlt_scripts.standings
       - name: Run results script
         run: python -m dlt_scripts.results
+      - name: Run cap penalty script
+        run: python -m cap_penalties.results
       # - name: Run Last Yr Rosters script
       #   run: python -m dlt_scripts.last_yr_rosters
       # - name: Run Last Yr Players script
