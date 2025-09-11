@@ -4,10 +4,14 @@
     - webhook embeds?
 
 - dbt
-    - for extensions, check current cap and contract year space
+    - 
     - prizes left and weekly pot are manual!
 
 - autoclear cache or something?  maybe put this in dlt nightly job
 
 - add franchise tag page
+
+- extensions
+        for extensions, check current cap and contract year space
+        add position filter
 
