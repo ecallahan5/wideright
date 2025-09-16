@@ -22,12 +22,7 @@ rosters = functions.bq_query("SELECT c.franchise_name, a.player_id, contract_yea
                              where a.status != 'TAXI_SQUAD' ")
 rosters_df = pd.DataFrame(rosters)
 
-penalties = functions.bq_query("SELECT b.franchise_id, a.team_name, b.franchise_name, \
-                               cast(a.Penalty_Applied_Year as STRING) as Penalty_Applied_Year, sum(a.penalty_Amount) as cap_penalty \
-                              FROM `mfl-374514.external.cap_penalties` a \
-                             left join mfl-374514.dbt_production.dim_franchises b \
-                             on trim(a.team_name) = trim(b.franchise_name) \
-                               group by 1,2,3,4")
+penalties = functions.bq_query("SELECT * from mfl-374514.dbt_production.fct_cap_penalties_total")
 penalties_df = pd.DataFrame(penalties)
 
 col1, col2 = st.columns(2)
@@ -44,7 +39,6 @@ with col2:
         '**Choose a league year**',
         global_vars.yr_list)
 
-
 st.divider()
 
 contract_yrs = global_vars.zipped_df.loc[global_vars.zipped_df["Year"] == year]["Contract Length"].values[0]
@@ -53,10 +47,10 @@ filtered_df['position_order'] = filtered_df['position'].map(global_vars.sort_map
 filtered_df = filtered_df.rename(columns={"player_name": "Name", "position": "Position", "salary": "Salary"}).sort_values('position_order')
 
 # Filter penalties for the selected team and year
-team_penalties_df = penalties_df.loc[(penalties_df["franchise_name"] == team) & (penalties_df["Penalty_Applied_Year"] == year)]
+team_penalties_df = penalties_df.loc[(penalties_df["franchise_name"] == team) & (penalties_df["adjustment_year"] == year)]
 
 numeric_cap_used = filtered_df["Salary"].sum()
-numeric_cap_penalties = team_penalties_df["cap_penalty"].sum()
+numeric_cap_penalties = team_penalties_df["adjustment_amt"].sum()
 numeric_cap_space = global_vars.salary_cap - numeric_cap_used - numeric_cap_penalties
 
 contract_yrs_used = filtered_df["contract_year"].sum()
