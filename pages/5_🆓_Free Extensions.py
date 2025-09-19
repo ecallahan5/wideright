@@ -41,7 +41,15 @@ team_elig = ext_eligible_df.loc[ext_eligible_df["franchise_name"] == team]
 
 if team:
     if not team_elig.empty:
-        positions = sorted(team_elig["Position"].unique())
+        # Get unique positions and sort them based on the custom order
+        unique_positions = team_elig["Position"].unique()
+
+        # Create a DataFrame for sorting
+        pos_df = pd.DataFrame({'Position': unique_positions})
+
+        # Map the custom sort order and sort
+        pos_df['order'] = pos_df['Position'].map(global_vars.sort_mapping['index'])
+        positions = pos_df.sort_values('order')['Position'].tolist()
         selected_positions = st.multiselect("Filter by Position", positions, positions)
 
         if selected_positions:
