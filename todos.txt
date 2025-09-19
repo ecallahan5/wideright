@@ -13,5 +13,7 @@
 
 - extensions
         for extensions, check current cap and contract year space
-        add position filter
+        check if team has already done an extention
 
+- Active Roster Tab
+    Can positional breakdowns pie charts have same order in legend?
