@@ -19,7 +19,7 @@ top_pts_probs = functions.bq_query(f"SELECT franchise_name as `Team`, top_pts, i
                                    order by top_pts desc \
                                    limit 3  ")
 top_pts_probs_df = pd.DataFrame(top_pts_probs)
-
+top_pts_probs_df
 lw_probs = functions.bq_query(f"SELECT franchise_name as `Team`, top_pts as lw_top_pts \
                                    FROM `mfl-374514.dbt_production.fct_reg_season_model` a \
                                    join `mfl-374514.dbt_production.dim_franchises` b \

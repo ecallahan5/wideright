@@ -113,8 +113,8 @@ if team:
                         st.write(f"Would you like to extend {player} for {ext_length} years at a salary of {ext_salary}?")
                         extend_action = st.button("Extend him!")
                         if extend_action:
-                            webhook_url = 'https://discord.com/api/webhooks/1287066512745693235/q9xOKdmyjoPsrO8LrHLY700gGHVl5eGayY15hxet5EEFawNAbgxFK1VQF7SvQ1XCYlFg'
-                            # test_url = 'https://discord.com/api/webhooks/1275122704164323360/YXzGlV2DI1PQ8LtXSEo0bpgxiLg3hw-HPXDtaNopRyzXX1gdjay01Icx4HqzZrJfjB4z'
+                            # webhook_url = 'https://discord.com/api/webhooks/1287066512745693235/q9xOKdmyjoPsrO8LrHLY700gGHVl5eGayY15hxet5EEFawNAbgxFK1VQF7SvQ1XCYlFg'
+                            test_url = 'https://discord.com/api/webhooks/1275122704164323360/YXzGlV2DI1PQ8LtXSEo0bpgxiLg3hw-HPXDtaNopRyzXX1gdjay01Icx4HqzZrJfjB4z'
                             if adj_needed: 
                                 content = f"🚨 **ANNUAL FREE EXTENSION ALERT!** 🚨\n\n" \
                                         f"**{team}** is extending **{player}** for **{ext_length} years** at a salary of **{ext_salary}**.\n\n" \
@@ -123,7 +123,9 @@ if team:
                                 content = f"🚨 **ANNUAL FREE EXTENSION ALERT!** 🚨\n\n" \
                                         f"**{team}** is extending **{player}** for **{ext_length} years** at a salary of **{ext_salary}**."
                             payload = {"content": content}
-                            r = requests.post(url = webhook_url, data = payload)
+                            print(payload)
+                            r = requests.post(url = test_url, data = payload)
+                            print(r)
                             if r: 
                                 st.toast("Your claim has been submitted!", icon='🎉')
         else:
