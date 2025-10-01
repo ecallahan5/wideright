@@ -43,7 +43,7 @@ with col1:
     st.dataframe(pts_df, hide_index=True, use_container_width = True)
  
 with col2: 
-    st.subheader("Top 3 Likliest Winners", divider=True)
+    st.subheader("Top 3 Likeliest Winners", divider=True)
 #     lw_prob_df = merged_df1.loc[merged_df1["current_wk"] == chosen_wk - 1][["franchise_name", "icon_url", "current_wk", "top_pts"]]\
 #         .rename(columns={"franchise_name": "Team", "top_pts" : "lw_top_pts"}).drop(["icon_url", 'current_wk'], axis = 1)
     grid_row_count = 3
