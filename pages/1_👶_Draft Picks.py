@@ -19,7 +19,14 @@ picks_df["pick_num"] = picks_df["pick_num"].fillna(0).astype(int)
 teams = functions.bq_query("SELECT franchise_id, franchise_name, division, icon FROM `mfl-374514.dbt_production.dim_franchises`")
 teams_df = pd.DataFrame(teams)
 
-picks_clean = picks_df.drop(["pick_owner"], axis = 1).rename(columns={"year": "Year", "round_num": "Round", "pick_num": "Pick"}).sort_values(["Year", "Round"])
+# Surface trade provenance if the table exposes it, without assuming an exact column name
+franchise_names = teams_df.set_index("franchise_id")["franchise_name"]
+original_owner_col = next((c for c in picks_df.columns if c != "pick_owner" and "original" in c.lower()), None)
+if original_owner_col:
+    picks_df["Via Trade From"] = picks_df[original_owner_col].map(franchise_names)
+    picks_df.loc[picks_df[original_owner_col] == picks_df["pick_owner"], "Via Trade From"] = ""
+
+picks_clean = picks_df.rename(columns={"year": "Year", "round_num": "Round", "pick_num": "Pick"}).sort_values(["Year", "Round", "Pick"])
 
 # Create filters    
 team_select = st.multiselect(
@@ -45,8 +52,7 @@ grid_col_count = 2
 
 mygrid = global_vars.make_grid(grid_row_count,grid_col_count)
 
-#Table style
-st.html("<style>  thead tr th:first-child {display:none}tbody th {display:none} ")
+display_columns = ["Year", "Round", "Pick"] + (["Via Trade From"] if original_owner_col else [])
 
 selected_team_names = team_select
 
@@ -72,10 +78,10 @@ for team_name, cell in zip(selected_team_names, grid_cells):
 
         # 2. Use the correct franchise_id to filter the picks
         filtered_picks = picks_clean.loc[
-            (picks_df["pick_owner"] == franchise_id) &
-            (picks_df["year"].isin(year_select)) &
-            (picks_df["round_num"].isin(round_select))
+            (picks_clean["pick_owner"] == franchise_id) &
+            (picks_clean["Year"].isin(year_select)) &
+            (picks_clean["Round"].isin(round_select))
         ]
-        
+
         # 3. Display the filtered table of picks
-        cell.table(filtered_picks)
+        cell.dataframe(filtered_picks[display_columns], hide_index=True, use_container_width=True)
