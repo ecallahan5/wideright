@@ -41,29 +41,44 @@ else:
 last_league_year = str(int(league_year) - 1) 
 
 #League Data
-@st.cache_data(ttl=dt.timedelta(days=1))
 def get_league_mfl_data():
-    # league_url = f'https://www49.myfantasyleague.com/{league_yr}/export?TYPE=league&L=59643&APIKEY=&JSON=1' # Original line, commented out
-    # Using league_yr_calc for now, will be updated later to use the new config variables
     league_url = f'https://www49.myfantasyleague.com/{league_year}/export?TYPE=league&L=59643&APIKEY=&JSON=1'
     r = requests.get(url=league_url)
     r.raise_for_status()  # Raise an exception for bad status codes
     return r.json()["league"]
 
-league = get_league_mfl_data()
-# roster_size = int(league["rosterSize"])
+if st.runtime.exists():
+    get_league_mfl_data = st.cache_data(ttl=dt.timedelta(days=1))(get_league_mfl_data)
+
 roster_size = 20  # This seems to be a hardcoded override
-salary_cap = float(league["salaryCapAmount"])
 contract_cap = 42 # This is hardcoded
 max_contract_yrs = 5
 
-#Contract Years Lookup
-# Using league_yr_calc for now, will be updated later to use the new config variables
-yr_list = list(range(league_year, league_year+max_contract_yrs,1))
-contract_yrs = list(range(1,max_contract_yrs+1,1))
-zipped_list = list(zip(contract_yrs, yr_list))
-cols = ["Contract Length", "Year"]
-zipped_df = pd.DataFrame(zipped_list, columns = cols)
+_cached_league = None
+_cached_salary_cap = None
+_cached_zipped_df = None
+
+def __getattr__(name):
+    global _cached_league, _cached_salary_cap, _cached_zipped_df
+    if name == "league":
+        if _cached_league is None:
+            _cached_league = get_league_mfl_data()
+        return _cached_league
+    elif name == "salary_cap":
+        if _cached_salary_cap is None:
+            _cached_salary_cap = float(__getattr__("league")["salaryCapAmount"])
+        return _cached_salary_cap
+    elif name == "yr_list":
+        return list(range(league_year, league_year+max_contract_yrs, 1))
+    elif name == "zipped_df":
+        if _cached_zipped_df is None:
+            yr_list = list(range(league_year, league_year+max_contract_yrs, 1))
+            contract_yrs = list(range(1, max_contract_yrs+1, 1))
+            zipped_list = list(zip(contract_yrs, yr_list))
+            cols = ["Contract Length", "Year"]
+            _cached_zipped_df = pd.DataFrame(zipped_list, columns=cols)
+        return _cached_zipped_df
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 # Positional Order
 df_mapping = pd.DataFrame({
