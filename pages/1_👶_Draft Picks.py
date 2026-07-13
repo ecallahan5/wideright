@@ -137,7 +137,7 @@ with tab_grid:
                                             label += f" ({round_val}.{pick_val:02d})"
                                             
                                         # Add trade tracing
-                                        if orig_owner_id != franchise_id:
+                                        if orig_owner_id and pd.notna(orig_owner_id) and orig_owner_id != franchise_id:
                                             orig_name = id_to_name.get(orig_owner_id, orig_owner_id)
                                             label += f" via {orig_name}"
                                             
