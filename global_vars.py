@@ -68,6 +68,8 @@ def __getattr__(name):
         if _cached_salary_cap is None:
             _cached_salary_cap = float(__getattr__("league")["salaryCapAmount"])
         return _cached_salary_cap
+    elif name == "yr_list":
+        return list(range(league_year, league_year+max_contract_yrs, 1))
     elif name == "zipped_df":
         if _cached_zipped_df is None:
             yr_list = list(range(league_year, league_year+max_contract_yrs, 1))
