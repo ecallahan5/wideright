@@ -10,8 +10,7 @@ def fetch_mfl_data(api_type, mfl_api_key, extra_params=""):
     cookies = {}
     if mfl_user_id:
         cookies["MFL_USER_ID"] = mfl_user_id
-        if api_type == "assets":
-            mfl_api_key = ""
+        mfl_api_key = ""
 
     url = f"https://{host}/{league_year}/export?TYPE={api_type}&L={league_id}&APIKEY={mfl_api_key}&JSON=1{extra_params}"
     response = requests.get(url, cookies=cookies, timeout=30)
