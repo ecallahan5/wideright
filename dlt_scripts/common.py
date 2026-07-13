@@ -88,8 +88,17 @@ PIPELINE_CONFIGS = {
 def fetch_mfl_data(api_type, mfl_api_key, extra_params="", year=None):
     """Centralized helper to query the MFL API with standard timeout and error handling."""
     query_year = year or league_year
+    
+    # Read MFL_USER_ID from environment variable or dlt secrets
+    import os
+    mfl_user_id = os.getenv("MFL_USER_ID") or dlt.secrets.get("mfl_user_id")
+    cookies = {}
+    if mfl_user_id:
+        cookies["MFL_USER_ID"] = mfl_user_id
+        mfl_api_key = ""
+
     url = f"https://{host}/{query_year}/export?TYPE={api_type}&L={league_id}&APIKEY={mfl_api_key}&JSON=1{extra_params}"
-    response = requests.get(url, timeout=30)
+    response = requests.get(url, cookies=cookies, timeout=30)
     response.raise_for_status()
     return response.json()
 
