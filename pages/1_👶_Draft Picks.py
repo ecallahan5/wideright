@@ -29,7 +29,7 @@ picks_df["year"] = pd.to_numeric(picks_df["year"], errors="coerce").fillna(0).as
 picks_df["round_num"] = pd.to_numeric(picks_df["round_num"], errors="coerce").fillna(0).astype(int)
 picks_df["pick_num"] = pd.to_numeric(picks_df["pick_num"], errors="coerce").fillna(0).astype(int)
 
-teams = functions.bq_query("SELECT franchise_id, franchise_name, division, icon FROM `mfl-374514.dbt_production.dim_franchises`")
+teams = functions.bq_query("SELECT franchise_id, franchise_name, division, icon FROM `mfl-374514.dbt_production.dim_franchises` -- force_refresh")
 teams_df = pd.DataFrame(teams)
 teams_df = standardize_df(teams_df, ["franchise_id", "franchise_name", "division", "icon"])
 
