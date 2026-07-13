@@ -8,14 +8,30 @@ st.set_page_config(layout="wide")
 st.title("👶 Draft Picks")
 st.divider()
 
+def standardize_df(df, required_cols):
+    if df is None:
+        return pd.DataFrame(columns=required_cols)
+    # Standardize column names to lowercase
+    df.columns = [col.lower() for col in df.columns]
+    # Ensure all required columns exist (fill with None if missing)
+    for col in required_cols:
+        if col not in df.columns:
+            df[col] = None
+    return df
+
 # 1. Fetch Draft Picks and Franchises Data
 picks = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.dim_draft_picks`")
 picks_df = pd.DataFrame(picks)
-picks_df[["year", "round_num", "pick_num"]] = picks_df[["year", "round_num", "pick_num"]].apply(pd.to_numeric, downcast="integer")
-picks_df["pick_num"] = picks_df["pick_num"].fillna(0).astype(int)
+picks_df = standardize_df(picks_df, ["year", "round_num", "pick_num", "original_owner", "pick_owner"])
+
+# Convert columns to numeric, handling empty/NaN values safely
+picks_df["year"] = pd.to_numeric(picks_df["year"], errors="coerce").fillna(0).astype(int)
+picks_df["round_num"] = pd.to_numeric(picks_df["round_num"], errors="coerce").fillna(0).astype(int)
+picks_df["pick_num"] = pd.to_numeric(picks_df["pick_num"], errors="coerce").fillna(0).astype(int)
 
 teams = functions.bq_query("SELECT franchise_id, franchise_name, division, icon FROM `mfl-374514.dbt_production.dim_franchises`")
 teams_df = pd.DataFrame(teams)
+teams_df = standardize_df(teams_df, ["franchise_id", "franchise_name", "division", "icon"])
 
 # 2. Build Franchise ID to Name Lookup Map for Trade Tracing
 id_to_name = dict(zip(teams_df["franchise_id"], teams_df["franchise_name"]))
