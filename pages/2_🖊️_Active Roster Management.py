@@ -76,9 +76,7 @@ with m_col1:
         st.markdown("### 💰 Salary Cap")
         st.metric(
             label="Remaining Cap Space", 
-            value="${:,.2f}".format(numeric_cap_space),
-            delta="${:,.2f}".format(numeric_cap_space) if numeric_cap_space >= 0 else "-${:,.2f}".format(abs(numeric_cap_space)),
-            delta_color="normal" if numeric_cap_space >= 0 else "inverse"
+            value="${:,.2f}".format(numeric_cap_space)
         )
         st.metric(label="Cap Used", value="${:,.2f}".format(numeric_cap_used))
         st.metric(label="Cap Penalties", value="${:,.2f}".format(numeric_cap_penalties))
@@ -88,9 +86,7 @@ with m_col2:
         st.markdown("### 📜 Contracts")
         st.metric(
             label="Contract Years Free", 
-            value=f"{contract_yrs_free} Years",
-            delta=f"{contract_yrs_free} free" if contract_yrs_free >= 0 else f"{abs(contract_yrs_free)} over",
-            delta_color="normal" if contract_yrs_free >= 0 else "inverse"
+            value=f"{contract_yrs_free} Years"
         )
         st.metric(label="Contract Years Used", value=f"{contract_yrs_used} Years")
 
@@ -99,9 +95,7 @@ with m_col3:
         st.markdown("### 🏈 Roster Spots")
         st.metric(
             label="Roster Spots Free", 
-            value=f"{roster_spots_free} / {global_vars.roster_size}",
-            delta=f"{roster_spots_free} free" if roster_spots_free >= 0 else f"{abs(roster_spots_free)} over",
-            delta_color="normal" if roster_spots_free >= 0 else "inverse"
+            value=f"{roster_spots_free} / {global_vars.roster_size}"
         )
         st.metric(label="Active Players Used", value=f"{roster_spots_used}")
 
