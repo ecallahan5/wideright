@@ -20,7 +20,7 @@ def standardize_df(df, required_cols):
     return df
 
 # 1. Fetch Draft Picks and Franchises Data
-picks = functions.bq_query("SELECT * FROM `mfl-374514.dbt_production.dim_draft_picks`")
+picks = functions.bq_query("SELECT pick_owner, year, round_num, pick_num, original_owner FROM `mfl-374514.dbt_production.dim_draft_picks`")
 picks_df = pd.DataFrame(picks)
 picks_df = standardize_df(picks_df, ["year", "round_num", "pick_num", "original_owner", "pick_owner"])
 
