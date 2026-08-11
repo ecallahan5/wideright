@@ -89,7 +89,7 @@ with st.spinner("Loading extension eligibility data..."):
         
         # Pull eligible players
         elig_query = "SELECT * FROM `mfl-374514.dbt_production.dim_free_ext_elig`"
-        elig_data = run_live_query(elig_query)
+        elig_data = functions.bq_query(elig_query)
         ext_eligible_df = pd.DataFrame(elig_data)
         
         if not ext_eligible_df.empty:
@@ -112,7 +112,7 @@ with st.spinner("Loading extension eligibility data..."):
             WHERE Ext__Season = {current_season}
               AND method = 'Allotted Extension'
         """
-        exclusion_data = run_live_query(exclusion_query)
+        exclusion_data = functions.bq_query(exclusion_query)
         exclusion_list = [item['franchise'] for item in exclusion_data]
         
     except Exception as e:
@@ -351,6 +351,7 @@ if selected_team:
                                         # Post to discord
                                         r = requests.post(webhook_url, json={"content": content}, timeout=10)
                                         if r.status_code in [200, 204]:
+                                            st.cache_data.clear()  # Clear cache so dropdown list refreshes immediately
                                             st.balloons()
                                             st.success(f"Success! Extension submitted for **{format_display_name(player_name)}**! The Discord announcement has been sent.")
                                             st.toast(f"Extension claim submitted!", icon='🎉')
