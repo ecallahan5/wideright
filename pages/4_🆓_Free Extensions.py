@@ -159,20 +159,34 @@ if selected_team:
         filtered_team_elig = team_elig[team_elig["Position"].isin(selected_positions)]
         
         if not filtered_team_elig.empty:
-            # Display summary table of eligible players
+            # Display summary grid of eligible players as cards
             st.markdown("### 📋 Eligible Roster Summary")
             st.write("These players are in the final year of their contracts and are eligible for a free extension:")
-            st.dataframe(
-                filtered_team_elig,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Name": "Player",
-                    "Position": "Position",
-                    "Salary_Display": "Salary"
-                },
-                column_order=("Name", "Position", "Salary_Display")
-            )
+            
+            # Render grid of player cards (4 columns per row)
+            cols_per_row = 4
+            num_players = len(filtered_team_elig)
+            for i in range(0, num_players, cols_per_row):
+                row_players = filtered_team_elig.iloc[i : i + cols_per_row]
+                cols = st.columns(cols_per_row, gap="medium")
+                for idx, (_, row) in enumerate(row_players.iterrows()):
+                    with cols[idx]:
+                        p_display_name = format_display_name(row["Name"])
+                        p_id = row["player_id"]
+                        if p_id and pd.notna(p_id):
+                            photo_url = f"https://www49.myfantasyleague.com/player_photos_2014/{p_id}_thumb.jpg"
+                        else:
+                            photo_url = global_vars.player_icon
+                            
+                        card_html = f"""
+                        <div class="player-card">
+                            <img src="{photo_url}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255, 255, 255, 0.2);" onerror="this.src='{global_vars.player_icon}'">
+                            <div class="player-name">{p_display_name}</div>
+                            <div class="player-meta">{row['Position']} • {selected_team}</div>
+                            <div class="player-salary">${row['Salary_Numeric']:.2f}</div>
+                        </div>
+                        """
+                        st.markdown(card_html, unsafe_allow_html=True)
             
             st.write("")
             
