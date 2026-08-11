@@ -139,6 +139,17 @@ if not ext_eligible_df.empty:
 else:
     selected_team = None
 
+# --- Session State Management ---
+if "selected_player_str" not in st.session_state:
+    st.session_state.selected_player_str = None
+if "prev_selected_team" not in st.session_state:
+    st.session_state.prev_selected_team = None
+
+# Reset player selection if team changes
+if selected_team != st.session_state.prev_selected_team:
+    st.session_state.selected_player_str = None
+    st.session_state.prev_selected_team = selected_team
+
 # --- Main UI Flow ---
 if selected_team:
     team_elig = ext_eligible_df[ext_eligible_df["franchise_name"] == selected_team]
@@ -187,17 +198,36 @@ if selected_team:
                         </div>
                         """
                         st.markdown(card_html, unsafe_allow_html=True)
+                        
+                        # Interactive Select button below card
+                        if st.button("Select Player", key=f"btn_{p_id}_{i}_{idx}", use_container_width=True):
+                            st.session_state.selected_player_str = f"{row['Name']} - {row['Position']}"
+                            st.rerun()
             
             st.write("")
             
             # Dropdown to select player
             player_list = (filtered_team_elig["Name"] + " - " + filtered_team_elig["Position"]).tolist()
+            
+            # Reset selection if it's no longer in the filtered list
+            if st.session_state.selected_player_str and st.session_state.selected_player_str not in player_list:
+                st.session_state.selected_player_str = None
+                
+            default_index = None
+            if st.session_state.selected_player_str in player_list:
+                default_index = player_list.index(st.session_state.selected_player_str)
+                
             selected_player_str = st.selectbox(
                 "Select Player to Extend",
                 options=player_list,
-                index=None,
+                index=default_index,
                 placeholder="Choose a player..."
             )
+            
+            # Sync dropdown manual selection back to session state
+            if selected_player_str != st.session_state.selected_player_str:
+                st.session_state.selected_player_str = selected_player_str
+                st.rerun()
             
             if selected_player_str:
                 # Find selected player record
