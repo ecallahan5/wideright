@@ -202,7 +202,6 @@ if selected_team:
                         # Interactive Select button below card
                         if st.button("Select Player", key=f"btn_{p_id}_{i}_{idx}", use_container_width=True):
                             st.session_state.selected_player_str = f"{row['Name']} - {row['Position']}"
-                            st.rerun()
             
             st.write("")
             
@@ -213,21 +212,12 @@ if selected_team:
             if st.session_state.selected_player_str and st.session_state.selected_player_str not in player_list:
                 st.session_state.selected_player_str = None
                 
-            default_index = None
-            if st.session_state.selected_player_str in player_list:
-                default_index = player_list.index(st.session_state.selected_player_str)
-                
             selected_player_str = st.selectbox(
                 "Select Player to Extend",
                 options=player_list,
-                index=default_index,
+                key="selected_player_str",
                 placeholder="Choose a player..."
             )
-            
-            # Sync dropdown manual selection back to session state
-            if selected_player_str != st.session_state.selected_player_str:
-                st.session_state.selected_player_str = selected_player_str
-                st.rerun()
             
             if selected_player_str:
                 # Find selected player record
