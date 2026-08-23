@@ -102,14 +102,14 @@ with st.spinner("Fetching holdout data..."):
 # --- Filters in the Sidebar ---
 if not players_df.empty:
     st.sidebar.header("Filter Options")
-    all_franchises = sorted([f for f in players_df["franchise_name"].unique() if f is not None])
+    all_franchises = sorted([f for f in players_df["franchise_name"].unique() if pd.notna(f)])
     selected_franchises = st.sidebar.multiselect(
         "Filter by Franchise",
         options=all_franchises,
         default=all_franchises,
         help="Select franchises to show their eligible holdout players."
     )
-    all_positions = sorted([p for p in players_df["position"].unique() if p is not None])
+    all_positions = sorted([p for p in players_df["position"].unique() if pd.notna(p)])
     selected_positions = st.sidebar.multiselect(
         "Filter by Position",
         options=all_positions,
