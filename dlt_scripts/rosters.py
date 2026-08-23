@@ -5,7 +5,7 @@ from .common import create_dlt_pipeline, fetch_mfl_data
 
 @dlt.resource(write_disposition="replace")
 def rosters_resource(mfl_api_key=dlt.secrets.value):
-    yield fetch_mfl_data("rosters", mfl_api_key, "&FRANCHISE=&W=")
+    yield fetch_mfl_data("rosters", mfl_api_key, "&FRANCHISE=&W=")["rosters"]["franchise"]
 
 @dlt.source
 def rosters_source(resource_func):

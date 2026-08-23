@@ -5,7 +5,7 @@ from .common import create_dlt_pipeline, fetch_mfl_data
 
 @dlt.resource(write_disposition="replace")
 def players_resource(mfl_api_key=dlt.secrets.value):
-    yield fetch_mfl_data("players", mfl_api_key, "&DETAILS=&SINCE=&PLAYERS=")
+    yield fetch_mfl_data("players", mfl_api_key, "&DETAILS=&SINCE=&PLAYERS=")["players"]["player"]
 
 @dlt.source
 def players_source(resource_func):

@@ -5,7 +5,7 @@ from .common import create_dlt_pipeline, fetch_mfl_data
 
 @dlt.resource(write_disposition="replace")
 def draft_picks_resource(mfl_api_key=dlt.secrets.value):
-    yield fetch_mfl_data("futureDraftPicks", mfl_api_key)
+    yield fetch_mfl_data("futureDraftPicks", mfl_api_key)["futureDraftPicks"]["franchise"]
 
 @dlt.source
 def draft_picks_source(resource_func):
