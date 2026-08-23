@@ -74,7 +74,7 @@ with st.spinner("Fetching holdout data..."):
         SELECT 
             h.name, 
             h.position, 
-            h.franchise_name, 
+            COALESCE(h.franchise_name, c.franchise_name) AS franchise_name,
             h.salary, 
             h.contract_year, 
             h.last_yr_pts,
@@ -83,6 +83,10 @@ with st.spinner("Fetching holdout data..."):
         FROM `mfl-374514.dbt_production.dim_holdout_players` h
         LEFT JOIN `mfl-374514.dbt_production.dim_players` p 
             ON h.name = p.player_name
+        LEFT JOIN `mfl-374514.dbt_production.dim_rosters` a
+            ON p.player_id = a.player_id
+        LEFT JOIN `mfl-374514.dbt_production.dim_franchises` c
+            ON a.franchise_id = c.franchise_id
         ORDER BY h.points_per_dollar DESC
     """
     players = run_live_query(query_players)
