@@ -3,12 +3,7 @@ import pandas as pd
 import global_vars
 import functions
 import requests
-import plotly.express as px
 from datetime import datetime
-
-# Configuration Flag
-VOTING_CLOSED = False  # Set to True when voting ends to show results
-
 
 st.set_page_config(layout="wide")
 st.title("🪧 2026 Holdouts")
@@ -74,7 +69,7 @@ with st.spinner("Fetching holdout data..."):
         SELECT 
             h.name, 
             h.position, 
-            COALESCE(h.franchise_name, c.franchise_name) AS franchise_name,
+            h.franchise_name, 
             h.salary, 
             h.contract_year, 
             h.last_yr_pts,
@@ -83,10 +78,6 @@ with st.spinner("Fetching holdout data..."):
         FROM `mfl-374514.dbt_production.dim_holdout_players` h
         LEFT JOIN `mfl-374514.dbt_production.dim_players` p 
             ON h.name = p.player_name
-        LEFT JOIN `mfl-374514.dbt_production.dim_rosters` a
-            ON p.player_id = a.player_id
-        LEFT JOIN `mfl-374514.dbt_production.dim_franchises` c
-            ON a.franchise_id = c.franchise_id
         ORDER BY h.points_per_dollar DESC
     """
     players = run_live_query(query_players)
@@ -106,14 +97,14 @@ with st.spinner("Fetching holdout data..."):
 # --- Filters in the Sidebar ---
 if not players_df.empty:
     st.sidebar.header("Filter Options")
-    all_franchises = sorted([f for f in players_df["franchise_name"].unique() if pd.notna(f)])
+    all_franchises = sorted([f for f in players_df["franchise_name"].unique() if f is not None])
     selected_franchises = st.sidebar.multiselect(
         "Filter by Franchise",
         options=all_franchises,
         default=all_franchises,
         help="Select franchises to show their eligible holdout players."
     )
-    all_positions = sorted([p for p in players_df["position"].unique() if pd.notna(p)])
+    all_positions = sorted([p for p in players_df["position"].unique() if p is not None])
     selected_positions = st.sidebar.multiselect(
         "Filter by Position",
         options=all_positions,
@@ -193,7 +184,10 @@ else:
 
 st.divider()
 
-# --- 3. Live Ballot Status Tracker (Gamification) or Results ---
+# --- 3. Live Ballot Status Tracker (Gamification) ---
+st.subheader("🗳️ Ballot Submission Status")
+st.write("See which franchises have submitted their ballot. Your choices are completely secret.")
+
 def get_voted_teams():
     try:
         query = "SELECT DISTINCT voter_team FROM `mfl-374514.external.holdout_ballots_2026`"
@@ -206,191 +200,109 @@ def get_voted_teams():
 voted_teams = get_voted_teams()
 team_names = [t for t in franchises_df["franchise_name"].tolist() if t is not None] if not franchises_df.empty else []
 
-if not VOTING_CLOSED:
-    st.subheader("🗳️ Ballot Submission Status")
-    st.write("See which franchises have submitted their ballot. Your choices are completely secret.")
-    
-    if team_names:
-        cols = st.columns(4)
-        for idx, name in enumerate(sorted(team_names)):
-            with cols[idx % 4]:
-                if name in voted_teams:
-                    st.markdown(f"🟢 **{name}**")
-                else:
-                    st.markdown(f"⚪ <span style='color:grey;'>{name}</span>", unsafe_allow_html=True)
-    
-    st.divider()
-    
-    # --- 4. Secret Voting Form / Ballot ---
-    st.subheader("✍️ Submit / Edit Ballot")
-    st.write("Cast your votes for the players most likely to hold out. Your ballot is saved securely in the database.")
-    
-    def insert_ballot_to_bigquery(team_name, selected_players):
-        try:
-            # Prepare row details
-            row = {
-                "voter_team": team_name,
-                "vote_1": selected_players[0] if len(selected_players) > 0 else None,
-                "vote_2": selected_players[1] if len(selected_players) > 1 else None,
-                "vote_3": selected_players[2] if len(selected_players) > 2 else None,
-                "vote_4": selected_players[3] if len(selected_players) > 3 else None,
-                "vote_5": selected_players[4] if len(selected_players) > 4 else None,
-                "submitted_at": datetime.now().isoformat()
-            }
-            
-            # 1. Delete previous entry to avoid duplicates
-            delete_query = f"DELETE FROM `mfl-374514.external.holdout_ballots_2026` WHERE voter_team = '{team_name}'"
-            delete_job = functions.client.query(delete_query)
-            delete_job.result() # Wait for deletion to complete
-            
-            # 2. Insert new row
-            table_ref = functions.client.dataset("external").table("holdout_ballots_2026")
-            errors = functions.client.insert_rows_json(table_ref, [row])
-            if errors:
-                st.error(f"BigQuery streaming insert failed: {errors}")
-                return False
-            return True
-        except Exception as e:
-            st.error(f"Failed to submit ballot: {e}")
-            return False
-    
-    # Dropdown to select Franchise
-    voter_team = st.selectbox("Select Your Franchise", [""] + team_names)
-    
-    has_voted = False
-    if voter_team:
-        has_voted = voter_team in voted_teams
-        if has_voted:
-            st.warning(f"⚠️ **{voter_team}** has already submitted a ballot. Submitting a new ballot will overwrite your previous choices.")
-    
-    with st.form("ballot_form"):
-        player_names = sorted([n for n in players_df["name"].tolist() if n is not None]) if not players_df.empty else []
-        
-        selected_players = st.multiselect(
-            "Select your top 5 holdout candidates",
-            options=player_names,
-            max_selections=5,
-            default=[],
-            help="Select up to 5 players."
-        )
-        
-        submit_button = st.form_submit_button(
-            "Overwrite Ballot" if has_voted else "Submit Ballot", 
-            use_container_width=True
-        )
-    
-    if submit_button:
-        if not voter_team:
-            st.error("Please select your Franchise first.")
-        elif not selected_players:
-            st.error("Please select at least one player choice.")
-        else:
-            with st.spinner("Saving ballot..."):
-                if insert_ballot_to_bigquery(voter_team, selected_players):
-                    # 1. Visual celebration
-                    st.balloons()
-                    
-                    # 2. Discord notification (secret)
-                    try:
-                        discord_secrets = st.secrets.get("discord", {})
-                        webhook_url = discord_secrets.get("contracts_url")
-                        if webhook_url:
-                            action = "updated" if has_voted else "submitted"
-                            message = f"🗳️ **{voter_team}** has {action} their 2026 Holdouts ballot!"
-                            
-                            # Calculate remaining teams to vote (excluding current team since they just voted)
-                            remaining_teams = [t for t in team_names if t not in voted_teams and t != voter_team]
-                            if remaining_teams:
-                                remaining_str = ", ".join(sorted(remaining_teams))
-                                message += f"\n⏳ **Teams left to vote:** {remaining_str}"
-                            else:
-                                message += "\n🎉 **All franchises have successfully submitted their ballots!**"
-                                
-                            requests.post(webhook_url, json={"content": message}, timeout=10)
-                    except Exception as e:
-                        # Log silently - don't fail user experience
-                        pass
-                    
-                    st.success(f"Success! Your ballot has been recorded for **{voter_team}**!")
-                    # Rerun to update the status grid
-                    st.rerun()
+if team_names:
+    cols = st.columns(4)
+    for idx, name in enumerate(sorted(team_names)):
+        with cols[idx % 4]:
+            if name in voted_teams:
+                st.markdown(f"🟢 **{name}**")
+            else:
+                st.markdown(f"⚪ <span style='color:grey;'>{name}</span>", unsafe_allow_html=True)
 
-else:
-    st.subheader("🏆 2026 Holdouts Voting Results")
-    st.write("Voting has ended! Here are the final aggregated tallies for the 2026 Holdouts voting.")
-    
-    # Query unpivoted votes to count them
-    query_results = """
-        WITH unpivoted_votes AS (
-            SELECT vote_1 AS player_name FROM `mfl-374514.external.holdout_ballots_2026` WHERE vote_1 IS NOT NULL
-            UNION ALL
-            SELECT vote_2 AS player_name FROM `mfl-374514.external.holdout_ballots_2026` WHERE vote_2 IS NOT NULL
-            UNION ALL
-            SELECT vote_3 AS player_name FROM `mfl-374514.external.holdout_ballots_2026` WHERE vote_3 IS NOT NULL
-            UNION ALL
-            SELECT vote_4 AS player_name FROM `mfl-374514.external.holdout_ballots_2026` WHERE vote_4 IS NOT NULL
-            UNION ALL
-            SELECT vote_5 AS player_name FROM `mfl-374514.external.holdout_ballots_2026` WHERE vote_5 IS NOT NULL
-        )
-        SELECT 
-            player_name as name, 
-            COUNT(*) AS votes
-        FROM unpivoted_votes
-        GROUP BY player_name
-        ORDER BY votes DESC
-    """
-    
+st.divider()
+
+# --- 4. Secret Voting Form / Ballot ---
+st.subheader("✍️ Submit / Edit Ballot")
+st.write("Cast your votes for the players most likely to hold out. Your ballot is saved securely in the database.")
+
+
+
+def insert_ballot_to_bigquery(team_name, selected_players):
     try:
-        results = run_live_query(query_results)
-        results_df = pd.DataFrame(results)
+        # Prepare row details
+        row = {
+            "voter_team": team_name,
+            "vote_1": selected_players[0] if len(selected_players) > 0 else None,
+            "vote_2": selected_players[1] if len(selected_players) > 1 else None,
+            "vote_3": selected_players[2] if len(selected_players) > 2 else None,
+            "vote_4": selected_players[3] if len(selected_players) > 3 else None,
+            "vote_5": selected_players[4] if len(selected_players) > 4 else None,
+            "submitted_at": datetime.now().isoformat()
+        }
+        
+        # 1. Delete previous entry to avoid duplicates
+        delete_query = f"DELETE FROM `mfl-374514.external.holdout_ballots_2026` WHERE voter_team = '{team_name}'"
+        delete_job = functions.client.query(delete_query)
+        delete_job.result() # Wait for deletion to complete
+        
+        # 2. Insert new row
+        table_ref = functions.client.dataset("external").table("holdout_ballots_2026")
+        errors = functions.client.insert_rows_json(table_ref, [row])
+        if errors:
+            st.error(f"BigQuery streaming insert failed: {errors}")
+            return False
+        return True
     except Exception as e:
-        st.error(f"Failed to load voting results: {e}")
-        results_df = pd.DataFrame()
-        
-    if not results_df.empty:
-        # Format the display names
-        results_df["name_display"] = results_df["name"].apply(format_display_name)
-        
-        # Merge with players_df to get details (position, franchise_name)
-        if not players_df.empty:
-            results_df = results_df.merge(players_df[["name", "position", "franchise_name"]], on="name", how="left")
-        
-        # Display Metric
-        st.metric("Total Ballots Cast", f"{len(voted_teams)} / {len(team_names)}")
-        
-        # Chart and Table layout
-        chart_col, table_col = st.columns([3, 2])
-        
-        with chart_col:
-            # Horizontal bar chart of results
-            # Sort ascending for horizontal bar chart display orientation
-            chart_data = results_df.sort_values("votes", ascending=True)
-            fig = px.bar(
-                chart_data,
-                x="votes",
-                y="name_display",
-                orientation="h",
-                labels={"votes": "Votes Received", "name_display": "Player"},
-                title="Tally of Votes Received",
-                color="votes",
-                color_continuous_scale=px.colors.sequential.Viridis
-            )
-            fig.update_layout(height=400, showlegend=False)
-            st.plotly_chart(fig, use_container_width=True)
-            
-        with table_col:
-            st.markdown("#### Detailed Standings")
-            st.dataframe(
-                results_df,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "name_display": "Player",
-                    "position": "Pos",
-                    "franchise_name": "Franchise",
-                    "votes": st.column_config.NumberColumn("Votes", format="%d")
-                },
-                column_order=("name_display", "position", "franchise_name", "votes")
-            )
+        st.error(f"Failed to submit ballot: {e}")
+        return False
+
+# Dropdown to select Franchise
+voter_team = st.selectbox("Select Your Franchise", [""] + team_names)
+
+has_voted = False
+if voter_team:
+    has_voted = voter_team in voted_teams
+    if has_voted:
+        st.warning(f"⚠️ **{voter_team}** has already submitted a ballot. Submitting a new ballot will overwrite your previous choices.")
+
+with st.form("ballot_form"):
+    player_names = sorted([n for n in players_df["name"].tolist() if n is not None]) if not players_df.empty else []
+    
+    selected_players = st.multiselect(
+        "Select your top 5 holdout candidates",
+        options=player_names,
+        max_selections=5,
+        default=[],
+        help="Select up to 5 players."
+    )
+    
+    submit_button = st.form_submit_button(
+        "Overwrite Ballot" if has_voted else "Submit Ballot", 
+        use_container_width=True
+    )
+
+if submit_button:
+    if not voter_team:
+        st.error("Please select your Franchise first.")
+    elif not selected_players:
+        st.error("Please select at least one player choice.")
     else:
-        st.info("No ballots have been submitted yet.")
+        with st.spinner("Saving ballot..."):
+            if insert_ballot_to_bigquery(voter_team, selected_players):
+                # 1. Visual celebration
+                st.balloons()
+                
+                # 2. Discord notification (secret)
+                try:
+                    discord_secrets = st.secrets.get("discord", {})
+                    webhook_url = discord_secrets.get("contracts_url")
+                    if webhook_url:
+                        action = "updated" if has_voted else "submitted"
+                        message = f"🗳️ **{voter_team}** has {action} their 2026 Holdouts ballot!"
+                        
+                        # Calculate remaining teams to vote (excluding current team since they just voted)
+                        remaining_teams = [t for t in team_names if t not in voted_teams and t != voter_team]
+                        if remaining_teams:
+                            remaining_str = ", ".join(sorted(remaining_teams))
+                            message += f"\n⏳ **Teams left to vote:** {remaining_str}"
+                        else:
+                            message += "\n🎉 **All franchises have successfully submitted their ballots!**"
+                            
+                        requests.post(webhook_url, json={"content": message}, timeout=10)
+                except Exception as e:
+                    # Log silently - don't fail user experience
+                    pass
+                
+                st.success(f"Success! Your ballot has been recorded for **{voter_team}**!")
+                # Rerun to update the status grid
+                st.rerun()
