@@ -58,9 +58,9 @@ jobs:
 
       - name: Run all DLT pipelines
         run: python -u -m dlt_scripts.run_all
-      # - name: Run Last Yr Rosters script
-      #   run: python -m dlt_scripts.last_yr_rosters
-      # - name: Run Last Yr Players script
-      #   run: python -m dlt_scripts.last_yr_players
-      # - name: Run Last Yr Scores script
-      #   run: python -m dlt_scripts.last_yr_scores
+      - name: Run Last Yr Rosters script
+        run: python -m dlt_scripts.last_yr_rosters
+      - name: Run Last Yr Players script
+        run: python -m dlt_scripts.last_yr_players
+      - name: Run Last Yr Scores script
+        run: python -m dlt_scripts.last_yr_scores
