@@ -1,6 +1,6 @@
-     cookies = {}
-     if mfl_user_id:
-         cookies["MFL_USER_ID"] = mfl_user_id
+cookies = {}
+if mfl_user_id:
+    cookies["MFL_USER_ID"] = mfl_user_id
 -        mfl_api_key = ""
 +        # Only the assets endpoint rejects requests that carry both the
 +        # cookie and the APIKEY at once. Every other endpoint needs the
@@ -8,9 +8,9 @@
 +        if api_type == "assets":
 +            mfl_api_key = ""
 
-     url = f"https://{host}/{league_year}/export?TYPE={api_type}&L={league_id}&APIKEY={mfl_api_key}&JSON=1{extra_params}"
-     response = requests.get(url, cookies=cookies, timeout=30)
-     response.raise_for_status()
+url = f"https://{host}/{league_year}/export?TYPE={api_type}&L={league_id}&APIKEY={mfl_api_key}&JSON=1{extra_params}"
+response = requests.get(url, cookies=cookies, timeout=30)
+response.raise_for_status()
 -    return response.json()
 +    data = response.json()
 +
