@@ -15,7 +15,10 @@ def fetch_mfl_data(api_type, mfl_api_key, extra_params=""):
     url = f"https://{host}/{league_year}/export?TYPE={api_type}&L={league_id}&APIKEY={mfl_api_key}&JSON=1{extra_params}"
     response = requests.get(url, cookies=cookies, timeout=30)
     response.raise_for_status()
-    return response.json()
+    data = response.json()
+    if "error" in data:
+        raise Exception(f"MFL API Error: {data['error']}")
+    return data
 
 def create_dlt_pipeline(pipeline_name, dataset_name, resource_func, source_func, write_disposition=None, force_create_mode=False):
     """Creates and runs a DLT pipeline.
