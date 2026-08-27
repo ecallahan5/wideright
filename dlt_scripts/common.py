@@ -54,3 +54,8 @@ def create_dlt_pipeline(pipeline_name, dataset_name, resource_func, source_func,
         # Apply the resource_func to the source_func before passing to pipeline.run
         load_info = pipeline_obj.run(source_func(resource_func), **run_options)
         print(f"Pipeline '{pipeline_name}' completed successfully with options: {run_options}")
+        print(load_info)
+        return load_info
+    except Exception as e:
+        print(f"An error occurred during pipeline '{pipeline_name}' run with options {run_options}: {e}")
+        raise
