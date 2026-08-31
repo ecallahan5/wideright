@@ -4,6 +4,7 @@ import global_vars
 import functions
 import requests
 from datetime import datetime
+from google.cloud import bigquery
 
 st.set_page_config(layout="wide")
 st.title("🪧 2026 Holdouts")
@@ -230,9 +231,14 @@ def insert_ballot_to_bigquery(team_name, selected_players):
             "submitted_at": datetime.now().isoformat()
         }
         
-        # 1. Delete previous entry to avoid duplicates
-        delete_query = f"DELETE FROM `mfl-374514.external.holdout_ballots_2026` WHERE voter_team = '{team_name}'"
-        delete_job = functions.client.query(delete_query)
+        # 1. Delete previous entry to avoid duplicates (parameterized to safely handle apostrophes/quotes in team names)
+        delete_query = "DELETE FROM `mfl-374514.external.holdout_ballots_2026` WHERE voter_team = @team_name"
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("team_name", "STRING", team_name)
+            ]
+        )
+        delete_job = functions.client.query(delete_query, job_config=job_config)
         delete_job.result() # Wait for deletion to complete
         
         # 2. Insert new row
