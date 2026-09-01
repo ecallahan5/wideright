@@ -1,4 +1,5 @@
 pandas==1.5.3
+jinja2>=3.0.0
 dlt[bigquery]>=0.4.7
 google-cloud-bigquery==3.25.0
 typing-extensions==4.7.1

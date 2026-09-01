@@ -237,30 +237,56 @@ if VOTING_CLOSED:
     st.write(f"Voting has ended! The designated holdout player{'s are' if num_holdouts != 1 else ' is'} highlighted below.")
     
     if not results_df.empty:
-        def highlight_holdouts(row):
-            if row.name in holdout_indices:
-                return ['font-weight: bold; background-color: rgba(255, 152, 0, 0.12);'] * len(row)
-            return [''] * len(row)
-
-        styled_results = (
-            results_df.style
-            .apply(highlight_holdouts, axis=1)
-            .format({"salary": "${:.2f}", "votes": "{:d}"})
+        table_df = results_df.copy()
+        table_df["name_display"] = table_df.apply(
+            lambda r: f"🪧 {r['name_display']}" if r.name in holdout_indices else r['name_display'],
+            axis=1
         )
 
-        st.dataframe(
-            styled_results,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "name_display": "Player",
-                "position": "Pos",
-                "franchise_name": "Franchise",
-                "salary": st.column_config.NumberColumn("Current Salary", format="$%.2f"),
-                "votes": st.column_config.NumberColumn("Votes", format="%d")
-            },
-            column_order=("name_display", "position", "franchise_name", "salary", "votes")
-        )
+        rendered = False
+        try:
+            def highlight_holdouts(row):
+                if row.name in holdout_indices:
+                    return ['font-weight: bold; background-color: rgba(255, 152, 0, 0.12);'] * len(row)
+                return [''] * len(row)
+
+            styled_results = (
+                table_df.style
+                .apply(highlight_holdouts, axis=1)
+                .format({"salary": "${:.2f}", "votes": "{:d}"})
+            )
+
+            st.dataframe(
+                styled_results,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "name_display": "Player",
+                    "position": "Pos",
+                    "franchise_name": "Franchise",
+                    "salary": st.column_config.NumberColumn("Current Salary", format="$%.2f"),
+                    "votes": st.column_config.NumberColumn("Votes", format="%d")
+                },
+                column_order=("name_display", "position", "franchise_name", "salary", "votes")
+            )
+            rendered = True
+        except Exception:
+            pass
+
+        if not rendered:
+            st.dataframe(
+                table_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "name_display": "Player",
+                    "position": "Pos",
+                    "franchise_name": "Franchise",
+                    "salary": st.column_config.NumberColumn("Current Salary", format="$%.2f"),
+                    "votes": st.column_config.NumberColumn("Votes", format="%d")
+                },
+                column_order=("name_display", "position", "franchise_name", "salary", "votes")
+            )
     else:
         st.info("No ballots have been submitted yet.")
 
