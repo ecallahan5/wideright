@@ -256,21 +256,42 @@ def insert_ballot_to_bigquery(team_name, selected_players):
 voter_team = st.selectbox("Select Your Franchise", [""] + team_names)
 
 has_voted = False
+prev_votes = {}
 if voter_team:
     has_voted = voter_team in voted_teams
     if has_voted:
         st.warning(f"⚠️ **{voter_team}** has already submitted a ballot. Submitting a new ballot will overwrite your previous choices.")
+        try:
+            prev_query = "SELECT vote_1, vote_2, vote_3, vote_4, vote_5 FROM `mfl-374514.external.holdout_ballots_2026` WHERE voter_team = @team_name LIMIT 1"
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[bigquery.ScalarQueryParameter("team_name", "STRING", voter_team)]
+            )
+            prev_rows = [dict(r) for r in functions.client.query(prev_query, job_config=job_config).result()]
+            if prev_rows:
+                prev_votes = prev_rows[0]
+        except Exception:
+            prev_votes = {}
 
 with st.form("ballot_form"):
     player_names = sorted([n for n in players_df["name"].tolist() if n is not None]) if not players_df.empty else []
+    player_options = [""] + player_names
     
-    selected_players = st.multiselect(
-        "Select your top 5 holdout candidates",
-        options=player_names,
-        max_selections=5,
-        default=[],
-        help="Select up to 5 players."
-    )
+    st.write("Distribute up to 5 votes among eligible holdout candidates. You may select different players or vote for the same player multiple times.")
+    
+    def get_index(vote_key):
+        val = prev_votes.get(vote_key)
+        if val and val in player_options:
+            return player_options.index(val)
+        return 0
+
+    col_a, col_b = st.columns(2, gap="medium")
+    with col_a:
+        v1 = st.selectbox("Vote 1 (Choice 1)", options=player_options, index=get_index("vote_1"), format_func=lambda x: format_display_name(x) if x else "— Select player (Required) —")
+        v2 = st.selectbox("Vote 2 (Choice 2)", options=player_options, index=get_index("vote_2"), format_func=lambda x: format_display_name(x) if x else "— Select player (Optional) —")
+        v3 = st.selectbox("Vote 3 (Choice 3)", options=player_options, index=get_index("vote_3"), format_func=lambda x: format_display_name(x) if x else "— Select player (Optional) —")
+    with col_b:
+        v4 = st.selectbox("Vote 4 (Choice 4)", options=player_options, index=get_index("vote_4"), format_func=lambda x: format_display_name(x) if x else "— Select player (Optional) —")
+        v5 = st.selectbox("Vote 5 (Choice 5)", options=player_options, index=get_index("vote_5"), format_func=lambda x: format_display_name(x) if x else "— Select player (Optional) —")
     
     submit_button = st.form_submit_button(
         "Overwrite Ballot" if has_voted else "Submit Ballot", 
@@ -278,6 +299,7 @@ with st.form("ballot_form"):
     )
 
 if submit_button:
+    selected_players = [v for v in [v1, v2, v3, v4, v5] if v and v != ""]
     if not voter_team:
         st.error("Please select your Franchise first.")
     elif not selected_players:
