@@ -1,0 +1,55 @@
+name: Run Playoff Odds Simulation
+
+on:
+  schedule:
+    - cron: '0 7 * * 2'  # Every Tuesday at 7:00 AM UTC (after 6:00 AM DLT daily sync)
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: 'Number of Monte Carlo simulations'
+        required: false
+        default: '10000'
+      week:
+        description: 'Specific completed week to simulate (leave blank for auto)'
+        required: false
+        default: ''
+
+jobs:
+  run_simulation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: 'requirements_github_action.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_github_action.txt
+
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Run Playoff Simulation
+        run: |
+          RUNS="${{ github.event.inputs.runs }}"
+          WEEK="${{ github.event.inputs.week }}"
+          CMD="python scripts/simulate_playoffs.py"
+          if [ -n "$RUNS" ]; then
+            CMD="$CMD --runs $RUNS"
+          else
+            CMD="$CMD --runs 10000"
+          fi
+          if [ -n "$WEEK" ]; then
+            CMD="$CMD --week $WEEK"
+          fi
+          echo "Executing: $CMD"
+          $CMD
