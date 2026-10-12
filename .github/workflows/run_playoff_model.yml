@@ -17,6 +17,9 @@ on:
 jobs:
   run_simulation:
     runs-on: ubuntu-latest
+    env:
+      MFL_API_KEY: ${{ secrets.MFL_API_KEY }}
+      MFL_USER_ID: ${{ secrets.MFL_USER_ID }}
     steps:
       - name: Check out
         uses: actions/checkout@v4

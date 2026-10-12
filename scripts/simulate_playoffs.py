@@ -1,7 +1,8 @@
 """
 Monte Carlo Regular Season & Playoff Odds Simulation for Wide Right Fantasy Football.
-Simulates remaining weekly matchups based on historical scoring distributions,
-incorporates Head-to-Head and League Median scoring (2 matchups per week),
+Simulates remaining weekly matchups based on historical scoring distributions blended with
+MFL optimal roster projected scores (capturing bye weeks, injuries, and talent changes).
+Incorporates Head-to-Head and League Median scoring (2 matchups per week),
 applies league tiebreakers, and calculates playoff odds, projected wins, and draft pick probabilities.
 Writes output directly to BigQuery native table: `mfl-374514.external.reg_season_sims`.
 """
@@ -15,7 +16,11 @@ import numpy as np
 import pandas as pd
 from google.cloud import bigquery
 from google.oauth2 import service_account
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import dlt
+
+from dlt_scripts.common import fetch_mfl_data
 
 
 def get_bq_client():
@@ -57,6 +62,89 @@ def bq_query(client, sql):
     """Executes a query and returns a list of dictionaries."""
     query_job = client.query(sql)
     return [dict(row) for row in query_job]
+
+
+def get_projected_team_scores(client, future_weeks, franchises):
+    """
+    Fetches MFL player projected scores for each future week and calculates
+    each franchise's optimal starting lineup projected score (1 QB, 2 RB, 2 WR, 1 TE, 1 PK, 1 Def, 2 Flex).
+    Returns dict: {week: {franchise_id: projected_score}}
+    """
+    api_key = os.getenv("MFL_API_KEY") or dlt.secrets.get("mfl_api_key", "")
+    if not api_key or not future_weeks:
+        print("MFL API key not found or no future weeks; skipping live roster projections.")
+        return {}
+
+    try:
+        rosters = bq_query(
+            client,
+            "SELECT franchise_id, player_id FROM `mfl-374514.dbt_production.dim_rosters` WHERE status = 'ROSTER'"
+        )
+        roster_df = pd.DataFrame(rosters)
+
+        players = bq_query(
+            client,
+            "SELECT player_id, position FROM `mfl-374514.dbt_production.dim_players`"
+        )
+        players_map = {p["player_id"]: p["position"] for p in players}
+        roster_df["pos"] = roster_df["player_id"].map(players_map)
+
+        weekly_projections = {}
+
+        for w in future_weeks:
+            try:
+                data = fetch_mfl_data("projectedScores", api_key, extra_params=f"&W={w}")
+                p_projs = {}
+                for p in data.get("projectedScores", {}).get("playerScore", []):
+                    val = p.get("score", "")
+                    try:
+                        p_projs[p["id"]] = float(val) if val else 0.0
+                    except ValueError:
+                        p_projs[p["id"]] = 0.0
+
+                wk_df = roster_df.copy()
+                wk_df["proj"] = wk_df["player_id"].map(p_projs).fillna(0.0)
+
+                team_scores = {}
+                for fid in franchises:
+                    tr = wk_df[wk_df["franchise_id"] == fid]
+                    qbs = tr[tr["pos"] == "QB"].sort_values("proj", ascending=False)
+                    qb = qbs["proj"].iloc[0] if len(qbs) > 0 else 0.0
+
+                    pks = tr[tr["pos"] == "PK"].sort_values("proj", ascending=False)
+                    pk = pks["proj"].iloc[0] if len(pks) > 0 else 0.0
+
+                    defs = tr[tr["pos"] == "Def"].sort_values("proj", ascending=False)
+                    d = defs["proj"].iloc[0] if len(defs) > 0 else 0.0
+
+                    rbs = tr[tr["pos"] == "RB"].sort_values("proj", ascending=False)
+                    rb = rbs.head(2)["proj"].sum()
+                    remaining_rbs = rbs.iloc[2:]
+
+                    wrs = tr[tr["pos"] == "WR"].sort_values("proj", ascending=False)
+                    wr = wrs.head(2)["proj"].sum()
+                    remaining_wrs = wrs.iloc[2:]
+
+                    tes = tr[tr["pos"] == "TE"].sort_values("proj", ascending=False)
+                    te = tes.head(1)["proj"].sum()
+                    remaining_tes = tes.iloc[1:]
+
+                    # 2 Flex spots from remaining RB, WR, TE
+                    flex_pool = pd.concat([remaining_rbs, remaining_wrs, remaining_tes]).sort_values("proj", ascending=False)
+                    flex = flex_pool.head(2)["proj"].sum()
+
+                    total = round(qb + pk + d + rb + wr + te + flex, 2)
+                    team_scores[fid] = total
+
+                weekly_projections[w] = team_scores
+            except Exception as e:
+                print(f"Warning: could not fetch projected scores for week {w}: {e}")
+
+        print(f"Successfully calculated optimal projected roster scores for {len(weekly_projections)} future weeks.")
+        return weekly_projections
+    except Exception as e:
+        print(f"Warning: error calculating roster projections ({e}); continuing with historical model.")
+        return {}
 
 
 def get_simulation_inputs(client, target_week=None):
@@ -151,6 +239,9 @@ def get_simulation_inputs(client, target_week=None):
         """
     )
 
+    future_weeks = sorted(list(set(g["wk"] for g in sched_data if g["wk"] >= current_wk)))
+    weekly_roster_projs = get_projected_team_scores(client, future_weeks, team_ids)
+
     return {
         "recent_completed_wk": recent_completed_wk,
         "current_wk": current_wk,
@@ -165,11 +256,12 @@ def get_simulation_inputs(client, target_week=None):
         "means_arr": means_arr,
         "stds_arr": stds_arr,
         "sched_data": sched_data,
+        "weekly_roster_projs": weekly_roster_projs,
     }
 
 
 def run_simulation(inputs, num_runs=10000):
-    """Run vectorized Monte Carlo simulations with H2H and League Median scoring."""
+    """Run vectorized Monte Carlo simulations with H2H, League Median, and blended roster projections."""
     current_wk = inputs["current_wk"]
     n_teams = inputs["n_teams"]
     team_idx = inputs["team_idx"]
@@ -180,13 +272,12 @@ def run_simulation(inputs, num_runs=10000):
     means_arr = inputs["means_arr"]
     stds_arr = inputs["stds_arr"]
     team_ids = inputs["team_ids"]
+    weekly_roster_projs = inputs.get("weekly_roster_projs", {})
 
     # 1. Past Stats Setup
-    # Total wins (H2H + Median) from dim_standings
     past_wins = np.array([standings_map[t]["wins"] for t in team_ids], dtype=int)
     past_points = np.array([standings_map[t]["points_for"] for t in team_ids], dtype=float)
 
-    # Division record and H2H matrix strictly from H2H matchups
     past_div_wins = np.zeros(n_teams, dtype=int)
     past_h2h = np.zeros((n_teams, n_teams), dtype=int)
 
@@ -233,9 +324,26 @@ def run_simulation(inputs, num_runs=10000):
         away_indices = np.array([m["away_idx"] for m in matchups])
         is_div_arr = np.array([m["is_div"] for m in matchups])
 
-        home_means = means_arr[home_indices]
+        # Compute effective mean for each team this week (blending roster projections with historical averages)
+        delta_wk = wk - current_wk
+        if delta_wk == 0:
+            w_proj = 0.70  # Upcoming week: 70% projected starting lineup, 30% history
+        elif delta_wk == 1:
+            w_proj = 0.60
+        elif delta_wk == 2:
+            w_proj = 0.50
+        else:
+            w_proj = 0.40  # Distant weeks: 40% projected starting lineup, 60% history
+
+        wk_projs = weekly_roster_projs.get(wk, {})
+        effective_means = means_arr.copy()
+        if wk_projs:
+            proj_means = np.array([wk_projs.get(t, means_arr[i]) for i, t in enumerate(team_ids)])
+            effective_means = (w_proj * proj_means) + ((1.0 - w_proj) * means_arr)
+
+        home_means = effective_means[home_indices]
         home_stds = stds_arr[home_indices]
-        away_means = means_arr[away_indices]
+        away_means = effective_means[away_indices]
         away_stds = stds_arr[away_indices]
 
         # Simulate scores for all matchups in this week
@@ -250,7 +358,6 @@ def run_simulation(inputs, num_runs=10000):
             div_flag = is_div_arr[m_idx]
             hw = home_win[:, m_idx]
 
-            # 1 H2H win to matchup winner
             sim_wins[hw, h] += 1
             sim_wins[~hw, a] += 1
 
@@ -265,15 +372,13 @@ def run_simulation(inputs, num_runs=10000):
             sim_points[:, a] += away_scores[:, m_idx]
 
         # B. Weekly League Median Scoring (Matchup 2)
-        # Assemble all 12 teams' scores for this week
         week_scores = np.zeros((num_runs, n_teams), dtype=float)
         for m_idx in range(n_matchups):
             h, a = home_indices[m_idx], away_indices[m_idx]
             week_scores[:, h] = home_scores[:, m_idx]
             week_scores[:, a] = away_scores[:, m_idx]
 
-        # In a 12-team league, top 6 scores receive an extra win against the median
-        # ranks: 0 = highest score, 11 = lowest score
+        # Top 6 scores receive an extra win against the weekly median
         ranks = np.argsort(np.argsort(-week_scores, axis=1), axis=1)
         sim_wins += (ranks < 6).astype(int)
 
@@ -400,11 +505,21 @@ def save_to_bigquery(client, df_probs, table_id="mfl-374514.external.reg_season_
 def simulate_and_save(num_runs=10000, target_week=None):
     """Main entrypoint to run simulation and save results directly to BigQuery."""
     start_time = time.time()
-    print(f"[{datetime.datetime.now()}] Starting Wide Right Playoff Odds Model ({num_runs:,} runs with Median Scoring)...")
+    print(f"[{datetime.datetime.now()}] Starting Wide Right Playoff Odds Model ({num_runs:,} runs with Roster Projections & Median Scoring)...")
 
     client = get_bq_client()
     inputs = get_simulation_inputs(client, target_week=target_week)
     print(f"Loaded league data: After Week {inputs['recent_completed_wk']}, Next Week {inputs['current_wk']}.")
+
+    # Display upcoming week's roster projections
+    current_wk = inputs["current_wk"]
+    wk_projs = inputs.get("weekly_roster_projs", {}).get(current_wk, {})
+    if wk_projs:
+        team_names = inputs["team_names"]
+        print(f"\n--- Week {current_wk} Optimal Roster Projections ---")
+        sorted_projs = sorted(wk_projs.items(), key=lambda x: x[1], reverse=True)
+        for fid, score in sorted_projs:
+            print(f"  {team_names.get(fid, fid):<26} {score:>6.1f} pts")
 
     df_probs = run_simulation(inputs, num_runs=num_runs)
 
@@ -414,7 +529,7 @@ def simulate_and_save(num_runs=10000, target_week=None):
     display_df["Team"] = display_df["franchise_id"].map(team_names)
     display_df = display_df.sort_values(by="make_playoffs", ascending=False)
     cols = ["Team", "proj_wins", "make_playoffs", "win_division", "bye", "one_seed", "top_pts", "first_pick"]
-    print("\n--- Simulation Summary (28-Game Median Model) ---")
+    print("\n--- Simulation Summary (28-Game Median Model + Roster Projections) ---")
     print(display_df[cols].to_string(index=False))
 
     save_to_bigquery(client, df_probs)
@@ -425,7 +540,7 @@ def simulate_and_save(num_runs=10000, target_week=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run Wide Right Playoff Odds Simulation (Median Scoring)")
+    parser = argparse.ArgumentParser(description="Run Wide Right Playoff Odds Simulation (Median Scoring + Roster Projections)")
     parser.add_argument("--runs", type=int, default=10000, help="Number of Monte Carlo simulations (default: 10000)")
     parser.add_argument("--week", type=int, default=None, help="Specific completed week to simulate (default: auto)")
     args = parser.parse_args()
