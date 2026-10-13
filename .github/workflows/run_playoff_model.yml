@@ -15,6 +15,10 @@ on:
         description: 'Specific completed week to simulate (leave blank for auto)'
         required: false
         default: ''
+      year:
+        description: 'Specific season year to simulate (leave blank for auto)'
+        required: false
+        default: ''
 
 jobs:
   check_schedule:
@@ -76,6 +80,7 @@ jobs:
         run: |
           RUNS="${{ github.event.inputs.runs }}"
           WEEK="${{ github.event.inputs.week }}"
+          YEAR="${{ github.event.inputs.year }}"
           CMD="python scripts/simulate_playoffs.py"
           if [ -n "$RUNS" ]; then
             CMD="$CMD --runs $RUNS"
@@ -84,6 +89,9 @@ jobs:
           fi
           if [ -n "$WEEK" ]; then
             CMD="$CMD --week $WEEK"
+          fi
+          if [ -n "$YEAR" ]; then
+            CMD="$CMD --year $YEAR"
           fi
           echo "Executing: $CMD"
           $CMD

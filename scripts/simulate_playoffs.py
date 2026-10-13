@@ -147,8 +147,15 @@ def get_projected_team_scores(client, future_weeks, franchises):
         return {}
 
 
-def get_simulation_inputs(client, target_week=None):
+def get_simulation_inputs(client, target_week=None, target_year=None):
     """Fetch standings, schedule, scores, and franchises from BigQuery."""
+    # Determine season / year
+    if target_year is not None:
+        sim_year = int(target_year)
+    else:
+        now = datetime.datetime.now()
+        sim_year = now.year if now.month > 2 else now.year - 1
+
     # 1. Week Information
     week_info = bq_query(
         client,
@@ -257,6 +264,7 @@ def get_simulation_inputs(client, target_week=None):
         "stds_arr": stds_arr,
         "sched_data": sched_data,
         "weekly_roster_projs": weekly_roster_projs,
+        "year": sim_year,
     }
 
 
@@ -465,6 +473,7 @@ def run_simulation(inputs, num_runs=10000):
             "proj_wins": round(float(proj_wins[i]), 4),
             "top_pts": round(float(top_pts_cnt[i] / num_runs), 4),
             "after_week": inputs["recent_completed_wk"],
+            "year": inputs["year"],
         })
 
     df_probs = pd.DataFrame(rows)
@@ -472,14 +481,15 @@ def run_simulation(inputs, num_runs=10000):
 
 
 def save_to_bigquery(client, df_probs, table_id="mfl-374514.external.reg_season_sims"):
-    """Atomically replaces probabilities for the completed week in BigQuery."""
+    """Atomically replaces probabilities for the completed week and year in BigQuery."""
     week = int(df_probs["after_week"].iloc[0])
-    print(f"Saving simulation results for after_week {week} to BigQuery table: {table_id}...")
+    year = int(df_probs["year"].iloc[0])
+    print(f"Saving simulation results for Year {year}, after_week {week} to BigQuery table: {table_id}...")
 
-    # 1. Delete existing rows for this week (idempotent)
-    delete_sql = f"DELETE FROM `{table_id}` WHERE after_week = {week}"
+    # 1. Delete existing rows for this year and week (idempotent)
+    delete_sql = f"DELETE FROM `{table_id}` WHERE year = {year} AND after_week = {week}"
     client.query(delete_sql).result()
-    print(f"Deleted any existing records for after_week = {week}.")
+    print(f"Deleted any existing records for year = {year}, after_week = {week}.")
 
     # 2. Insert new records
     job_config = bigquery.LoadJobConfig(
@@ -495,21 +505,22 @@ def save_to_bigquery(client, df_probs, table_id="mfl-374514.external.reg_season_
             bigquery.SchemaField("proj_wins", "FLOAT64"),
             bigquery.SchemaField("top_pts", "FLOAT64"),
             bigquery.SchemaField("after_week", "INT64"),
+            bigquery.SchemaField("year", "INT64"),
         ],
     )
     job = client.load_table_from_dataframe(df_probs, table_id, job_config=job_config)
     job.result()
-    print(f"Successfully inserted {len(df_probs)} rows into {table_id} for week {week}!")
+    print(f"Successfully inserted {len(df_probs)} rows into {table_id} for year {year}, week {week}!")
 
 
-def simulate_and_save(num_runs=10000, target_week=None):
+def simulate_and_save(num_runs=10000, target_week=None, target_year=None):
     """Main entrypoint to run simulation and save results directly to BigQuery."""
     start_time = time.time()
     print(f"[{datetime.datetime.now()}] Starting Wide Right Playoff Odds Model ({num_runs:,} runs with Roster Projections & Median Scoring)...")
 
     client = get_bq_client()
-    inputs = get_simulation_inputs(client, target_week=target_week)
-    print(f"Loaded league data: After Week {inputs['recent_completed_wk']}, Next Week {inputs['current_wk']}.")
+    inputs = get_simulation_inputs(client, target_week=target_week, target_year=target_year)
+    print(f"Loaded league data: Year {inputs['year']}, After Week {inputs['recent_completed_wk']}, Next Week {inputs['current_wk']}.")
 
     # Display upcoming week's roster projections
     current_wk = inputs["current_wk"]
@@ -543,6 +554,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Wide Right Playoff Odds Simulation (Median Scoring + Roster Projections)")
     parser.add_argument("--runs", type=int, default=10000, help="Number of Monte Carlo simulations (default: 10000)")
     parser.add_argument("--week", type=int, default=None, help="Specific completed week to simulate (default: auto)")
+    parser.add_argument("--year", type=int, default=None, help="Specific season/year to simulate (default: current league year)")
     args = parser.parse_args()
 
-    simulate_and_save(num_runs=args.runs, target_week=args.week)
+    simulate_and_save(num_runs=args.runs, target_week=args.week, target_year=args.year)
