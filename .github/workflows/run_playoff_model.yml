@@ -1,8 +1,10 @@
 name: Run Playoff Odds Simulation
 
 on:
-  schedule:
-    - cron: '0 7 * * 2'  # Every Tuesday at 7:00 AM UTC (after 6:00 AM DLT daily sync)
+  workflow_run:
+    workflows: ["Run dlt pipelines"]
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       runs:
@@ -15,7 +17,36 @@ on:
         default: ''
 
 jobs:
+  check_schedule:
+    name: Check Trigger & Schedule
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - id: check
+        name: Check if Tuesday or Manual Run
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # 1 = Monday, 2 = Tuesday, ..., 7 = Sunday (UTC)
+            DAY=$(date -u +%u)
+            if [ "$DAY" -ne 2 ]; then
+              echo "Today is UTC day $DAY (not Tuesday). Skipping weekly playoff simulation."
+              echo "should_run=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Today is Tuesday. Upstream DLT pipeline succeeded. Proceeding with simulation."
+          else
+            echo "Manual workflow_dispatch triggered. Proceeding with simulation."
+          fi
+          echo "should_run=true" >> $GITHUB_OUTPUT
+
   run_simulation:
+    name: Run Playoff Simulation
+    needs: check_schedule
+    if: needs.check_schedule.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     env:
       MFL_API_KEY: ${{ secrets.MFL_API_KEY }}
