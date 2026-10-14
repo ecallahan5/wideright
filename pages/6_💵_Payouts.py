@@ -649,25 +649,25 @@ with tab_projections:
         with sm1:
             st.markdown("""
             <div class="metric-card">
-                <div class="metric-lbl">Total Up for Grabs</div>
-                <div class="metric-val" style="color: #4CAF50;">$770</div>
-                <div class="metric-sub">Awarded at end of season</div>
+                <div class="metric-lbl">Total League Pot</div>
+                <div class="metric-val" style="color: #4CAF50;">$1,120</div>
+                <div class="metric-sub">$770 Season/Playoffs &bull; $350 Weekly</div>
             </div>
             """, unsafe_allow_html=True)
         with sm2:
             st.markdown("""
             <div class="metric-card">
-                <div class="metric-lbl">Regular Season Purse</div>
-                <div class="metric-val" style="color: #FFC107;">$300</div>
-                <div class="metric-sub">3x Div ($150) &bull; 3x WC ($90) &bull; Top PF ($60)</div>
+                <div class="metric-lbl">End of Season Purse</div>
+                <div class="metric-val" style="color: #FFC107;">$770</div>
+                <div class="metric-sub">$300 Reg Season &bull; $470 Postseason</div>
             </div>
             """, unsafe_allow_html=True)
         with sm3:
-            st.markdown("""
+            st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-lbl">Postseason Tournament</div>
-                <div class="metric-val" style="color: #2196F3;">$470</div>
-                <div class="metric-sub">🥇 $275 &bull; 🥈 $135 &bull; 🥉 $60</div>
+                <div class="metric-lbl">Prize Money Remaining</div>
+                <div class="metric-val" style="color: #2196F3;">${total_remaining:,}</div>
+                <div class="metric-sub">${weekly_prizes_left:,} Weekly &bull; $770 Season/Playoffs</div>
             </div>
             """, unsafe_allow_html=True)
         with sm4:
