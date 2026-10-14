@@ -752,50 +752,6 @@ with tab_projections:
             """, unsafe_allow_html=True)
 
         st.write("")
-        st.divider()
-
-        # Division Races (3 Columns)
-        st.markdown("#### 🛡️ Division Title Races &amp; Odds ($50 Prize Per Division)")
-        st.caption("Each division winner secures an automatic playoff berth and a $50 cash payout at the conclusion of the regular season.")
-
-        div_cols = st.columns(3, gap="large")
-        divisions_list = ["Left Upright", "Crossbar", "Right Upright"]
-        
-        for idx, div_name in enumerate(divisions_list):
-            div_teams = sim_df[sim_df["division"] == div_name].sort_values(by="win_division", ascending=False).reset_index(drop=True)
-            with div_cols[idx]:
-                st.markdown(f"""
-                <div class="week-card" style="padding: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0;">{div_name}</h4>
-                        <span class="badge badge-gold">$50.00</span>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                for t_idx, team_row in div_teams.iterrows():
-                    icon_tag = f'<img src="{team_row["icon"]}" width="28" style="vertical-align: middle; border-radius: 50%; margin-right: 8px;">' if team_row["icon"] else '🏈 '
-                    win_div_pct = team_row["win_division"] * 100
-                    badge_style = "badge-gold" if t_idx == 0 and win_div_pct > 30 else ("badge-silver" if win_div_pct > 15 else "badge-bronze")
-                    
-                    st.markdown(f"""
-                    <div class="prob-card" style="margin-bottom: 8px; padding: 10px 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="display: flex; align-items: center;">
-                                {icon_tag}
-                                <div>
-                                    <strong style="font-size: 0.92rem;">{team_row['franchise_name']}</strong>
-                                    <div style="font-size: 0.78rem; opacity: 0.7;">{team_row['wins']}-{team_row['losses']} &bull; {team_row['points_for']:.1f} PF &bull; {team_row['proj_wins']:.1f} Proj W</div>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge {badge_style}">{win_div_pct:.1f}%</span>
-                            </div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                st.markdown("</div>", unsafe_allow_html=True)
-
         st.write("")
         st.divider()
 
@@ -877,56 +833,19 @@ with tab_projections:
         )
 
         st.write("")
-        st.divider()
-
-        # Franchise Profile Deep Dive
-        st.markdown("#### 🔍 Franchise Odds Deep-Dive")
-        sel_team = st.selectbox(
-            "Select a franchise to view comprehensive odds profile:",
-            options=sim_df["franchise_name"].tolist(),
-            key="payout_team_profile_select"
-        )
-
-        if sel_team:
-            t_row = sim_df[sim_df["franchise_name"] == sel_team].iloc[0]
-            
-            p_col1, p_col2 = st.columns([0.3, 0.7], gap="large")
-            with p_col1:
-                icon_html = f'<img src="{t_row["icon"]}" width="70" style="margin-bottom: 8px;">' if t_row["icon"] else '🏈'
-                st.markdown(f"""
-                <div class="podium-card" style="text-align: center; padding: 18px;">
-                    <div>{icon_html}</div>
-                    <h3 style="margin: 4px 0 2px 0;">{t_row['franchise_name']}</h3>
-                    <div style="font-size: 0.85rem; opacity: 0.75;">{t_row['division']} Division</div>
-                    <div style="font-size: 0.85rem; margin-top: 6px;">Record: <strong>{t_row['wins']}-{t_row['losses']}</strong> ({t_row['points_for']:.2f} PF)</div>
-                    <hr style="margin: 10px 0; border: none; border-top: 1px solid rgba(128,128,128,0.2);" />
-                    <div style="font-size: 0.8rem; opacity: 0.75;">Expected Reg. Season Cash:</div>
-                    <div class="metric-val" style="font-size: 1.8rem;">${t_row['expected_reg_payout']:.2f}</div>
-                    <div style="font-size: 0.8rem; opacity: 0.7;">Projected: <strong>{t_row['proj_wins']:.1f} Wins</strong></div>
+        # Callout card linking to Projected Standings page
+        st.markdown("""
+        <div class="week-card" style="border-left: 4px solid #ba68c8; background: rgba(156, 39, 176, 0.05); padding: 14px 20px; border-radius: 12px; margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <strong style="font-size: 1.05rem;">🔮 Looking for Projected Standings &amp; Playoff Seeds?</strong>
+                    <div style="font-size: 0.88rem; opacity: 0.8; margin-top: 2px;">
+                        Explore full 3-division projected tables, playoff qualification cutoffs, first-round bye odds, and #1 draft pick probabilities on the dedicated page.
+                    </div>
                 </div>
-                """, unsafe_allow_html=True)
-
-            with p_col2:
-                r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
-                with r1_c1:
-                    st.metric("Make Playoffs", f"{t_row['make_playoffs']*100:.1f}%")
-                with r1_c2:
-                    st.metric("Win Division ($50)", f"{t_row['win_division']*100:.1f}%")
-                with r1_c3:
-                    st.metric("Wild Card ($30)", f"{t_row['wild_card']*100:.1f}%")
-                with r1_c4:
-                    st.metric("Points Title ($60)", f"{t_row['top_pts']*100:.1f}%")
-
-                st.write("")
-                r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
-                with r2_c1:
-                    st.metric("#1 Overall Seed", f"{t_row['one_seed']*100:.1f}%")
-                with r2_c2:
-                    st.metric("First-Round Bye", f"{t_row['bye']*100:.1f}%")
-                with r2_c3:
-                    st.metric("Projected Wins", f"{t_row['proj_wins']:.1f}")
-                with r2_c4:
-                    st.metric("#1 Overall Pick", f"{t_row['first_pick']*100:.1f}%")
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     else:
         st.info("Simulation model data for 2026 is currently generating. Check back shortly!")
