@@ -35,8 +35,8 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             pip3 install --upgrade pip
-            pip3 install -r /home/forge/streamlit/requirements.txt
-            pip3 install google-cloud-bigquery
+            pip3 install --upgrade --no-cache-dir -r /home/forge/streamlit/requirements.txt
+            pip3 install --upgrade google-cloud-bigquery jinja2
 
       # Pull the latest changes from the repository
       - name: pushing changes to wideright.app server

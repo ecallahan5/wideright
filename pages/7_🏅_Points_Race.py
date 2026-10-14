@@ -370,18 +370,27 @@ display_df.columns = [
 ]
 
 st.dataframe(
-    display_df.style.format({
-        "Total Points": "{:.2f}",
-        "PPG": "{:.2f}",
-        "Pts Behind": lambda x: "Leader" if x == 0 else f"-{x:.2f}",
-        "Title Odds %": "{:.2f}%",
-        "WoW Delta %": lambda x: f"{'+' if x > 0 else ''}{x:.2f}%",
-        "Efficiency %": "{:.1f}%",
-        "Bench Lost": "{:.2f}",
-        "Season High": "{:.2f}"
-    }).background_gradient(subset=["Title Odds %"], cmap="YlOrRd"),
+    display_df,
     hide_index=True,
-    use_container_width=True
+    use_container_width=True,
+    column_config={
+        "Rank": st.column_config.NumberColumn("Rank", format="%d"),
+        "Franchise": "Franchise",
+        "Title Odds %": st.column_config.ProgressColumn(
+            "Title Odds %",
+            help="Probability of finishing #1 in total points",
+            format="%.2f%%",
+            min_value=0,
+            max_value=100,
+        ),
+        "WoW Delta %": st.column_config.NumberColumn("WoW Delta %", format="%+.2f%%"),
+        "Total Points": st.column_config.NumberColumn("Total Points", format="%.2f"),
+        "PPG": st.column_config.NumberColumn("PPG", format="%.2f"),
+        "Pts Behind": st.column_config.NumberColumn("Pts Behind", format="%.2f"),
+        "Efficiency %": st.column_config.NumberColumn("Efficiency %", format="%.1f%%"),
+        "Bench Lost": st.column_config.NumberColumn("Bench Lost", format="%.2f"),
+        "Season High": st.column_config.NumberColumn("Season High", format="%.2f"),
+    }
 )
 
 st.write("")
