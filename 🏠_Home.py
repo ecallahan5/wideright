@@ -60,11 +60,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Welcome to Wide Right 2026!")
-st.image(
-    "https://s.yimg.com/ny/api/res/1.2/QJcrvuxEPZLQX4n3kjaa2g--/YXBwaWQ9aGlnaGxhbmRlcjt3PTI0MDA7aD0xNjI4O2NmPXdlYnA-/https://s.yimg.com/os/creatr-images/2019-02/9c91c250-2653-11e9-bfee-96db584edaa1",
-    use_column_width=True
-)
+head_col1, head_col2 = st.columns([0.72, 0.28], gap="medium")
+with head_col1:
+    st.title("Welcome to Wide Right 2026!")
+    st.markdown("""
+    Your central command center for the Wide Right Fantasy Football League. Track live regular season simulations, points race analytics, cash payouts, and contract management tools across the 2026 season.
+    """)
+with head_col2:
+    st.image(
+        "https://s.yimg.com/ny/api/res/1.2/QJcrvuxEPZLQX4n3kjaa2g--/YXBwaWQ9aGlnaGxhbmRlcjt3PTI0MDA7aD0xNjI4O2NmPXdlYnA-/https://s.yimg.com/os/creatr-images/2019-02/9c91c250-2653-11e9-bfee-96db584edaa1",
+        width=260
+    )
+
 st.divider()
 
 st.subheader("📖 League Hub & Table of Contents")
