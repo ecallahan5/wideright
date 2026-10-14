@@ -250,9 +250,8 @@ for idx, div_name in enumerate(divisions):
     with div_cols[idx]:
         st.markdown(f"""
         <div class="week-card" style="padding: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="margin-bottom: 12px;">
                 <h4 style="margin: 0;">{div_name} Division</h4>
-                <span class="badge badge-purple">4 Franchises</span>
             </div>
         """, unsafe_allow_html=True)
 
