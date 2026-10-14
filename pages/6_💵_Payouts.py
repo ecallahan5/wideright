@@ -114,6 +114,25 @@ st.markdown("""
         color: #64b5f6;
         border: 1px solid rgba(33, 150, 243, 0.4);
     }
+    .prob-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+    .prob-card {
+        background: rgba(128, 128, 128, 0.04);
+        border: 1px solid rgba(128, 128, 128, 0.16);
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .prob-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(33, 150, 243, 0.4);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -316,6 +335,46 @@ def fetch_payouts_data():
         "has_official_table": has_official_table,
         "franchises_df": franchises_df
     }
+
+@st.cache_data(ttl=300)
+def fetch_payout_projections_data():
+    """
+    Fetches the latest Monte Carlo simulation model projections for 2026 joined with franchise standings.
+    """
+    query = """
+        SELECT 
+            f.franchise_id,
+            f.franchise_name,
+            f.division,
+            f.icon,
+            CAST(s.wins AS INT64) as wins,
+            CAST(s.losses AS INT64) as losses,
+            CAST(s.points_for AS FLOAT64) as points_for,
+            m.after_week,
+            CAST(m.proj_wins AS FLOAT64) as proj_wins,
+            CAST(m.win_division AS FLOAT64) as win_division,
+            CAST(m.wild_card AS FLOAT64) as wild_card,
+            CAST(m.make_playoffs AS FLOAT64) as make_playoffs,
+            CAST(m.one_seed AS FLOAT64) as one_seed,
+            CAST(m.bye AS FLOAT64) as bye,
+            CAST(m.top_pts AS FLOAT64) as top_pts,
+            CAST(m.first_pick AS FLOAT64) as first_pick
+        FROM `mfl-374514.dbt_production.dim_franchises` f
+        LEFT JOIN `mfl-374514.dbt_production.dim_standings` s ON f.franchise_id = s.franchise_id
+        JOIN `mfl-374514.dbt_production.fct_reg_season_model` m ON f.franchise_id = m.franchise_id AND m.year = 2026
+        ORDER BY m.after_week DESC, m.proj_wins DESC
+    """
+    try:
+        rows = functions.bq_query(query)
+        df = pd.DataFrame(rows)
+        if not df.empty:
+            df["expected_reg_payout"] = (df["win_division"] * 50.0) + (df["wild_card"] * 30.0) + (df["top_pts"] * 60.0)
+            df["ev_division"] = df["win_division"] * 50.0
+            df["ev_wild_card"] = df["wild_card"] * 30.0
+            df["ev_top_pts"] = df["top_pts"] * 60.0
+        return df
+    except Exception:
+        return pd.DataFrame()
 
 data = fetch_payouts_data()
 leaderboard_df = data["leaderboard"]
@@ -559,102 +618,318 @@ with tab_weekly:
 with tab_projections:
     st.subheader("Regular Season & Playoff Prizes Up for Grabs", divider="orange")
 
-    # Coming Soon Placeholder Banner
-    st.markdown("""
-    <div class="week-card" style="border-left: 5px solid #2196F3; background: rgba(33, 150, 243, 0.05); padding: 22px 24px; border-radius: 16px; margin-bottom: 24px;">
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-            <span class="badge" style="background: rgba(33, 150, 243, 0.2); color: #2196F3; font-weight: 800; border: 1px solid rgba(33, 150, 243, 0.4);">COMING SOON</span>
-            <span style="font-weight: 700; font-size: 1.15rem;">🔮 2026 Playoff &amp; Regular Season Simulation Model</span>
-        </div>
-        <p style="margin: 0; opacity: 0.85; font-size: 0.95rem; line-height: 1.5;">
-            Weekly Monte Carlo playoff simulations and division odds are currently being calibrated for 2026 and will launch once mid-season simulation batches begin. Check back soon for live division title chances, wild card race probabilities, and projected win totals!
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    proj_model_df = fetch_payout_projections_data()
 
-    st.markdown("#### 🎁 End of Season &amp; Playoff Prize Allocation")
-    st.write("A total of **\\$770** will be awarded at the conclusion of the regular season and playoffs:")
-
-    p1, p2, p3 = st.columns(3, gap="large")
-
-    with p1:
-        st.markdown("""
-        <div class="metric-card" style="text-align: left; padding: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="badge badge-gold">REGULAR SEASON</span>
-                <strong style="color: #FFC107; font-size: 1.25rem;">$150 Total</strong>
+    if not proj_model_df.empty:
+        available_model_weeks = sorted(proj_model_df["after_week"].unique(), reverse=True)
+        
+        # Header controls
+        ctrl_col1, ctrl_col2 = st.columns([0.7, 0.3])
+        with ctrl_col1:
+            st.markdown("""
+            <div style="font-size: 0.95rem; opacity: 0.85; margin-top: 4px;">
+                Probabilities and expected prize values generated from <strong>10,000 Monte Carlo regular season simulations</strong>, incorporating actual scores, player projections, and remaining schedules.
             </div>
-            <h4 style="margin: 10px 0 6px 0;">🛡️ 3x Division Titles</h4>
-            <div style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 12px;"><strong>$50.00</strong> awarded to the 1st place finisher in each division:</div>
-            <ul style="font-size: 0.88rem; opacity: 0.85; margin: 0; padding-left: 20px;">
-                <li>Left Upright Champion: <strong>$50.00</strong></li>
-                <li>Crossbar Champion: <strong>$50.00</strong></li>
-                <li>Right Upright Champion: <strong>$50.00</strong></li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        with ctrl_col2:
+            selected_model_wk = st.selectbox(
+                "Simulation Calibration Week:",
+                options=available_model_weeks,
+                format_func=lambda w: f"Through Week {w}",
+                key="payout_sim_week_select"
+            )
 
-    with p2:
-        st.markdown("""
-        <div class="metric-card" style="text-align: left; padding: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="badge badge-silver">REGULAR SEASON</span>
-                <strong style="color: #64b5f6; font-size: 1.25rem;">$150 Total</strong>
+        sim_df = proj_model_df[proj_model_df["after_week"] == selected_model_wk].copy()
+        sim_df = sim_df.sort_values(by="expected_reg_payout", ascending=False).reset_index(drop=True)
+
+        top_ev_franchise = sim_df.iloc[0]
+
+        # Top Model Metrics Bar
+        sm1, sm2, sm3, sm4 = st.columns(4)
+        with sm1:
+            st.markdown("""
+            <div class="metric-card">
+                <div class="metric-lbl">Total Up for Grabs</div>
+                <div class="metric-val" style="color: #4CAF50;">$770</div>
+                <div class="metric-sub">Awarded at end of season</div>
             </div>
-            <h4 style="margin: 10px 0 6px 0;">🃏 Wild Cards &amp; Points Title</h4>
-            <div style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 12px;">Non-division playoff qualifiers and total scoring leader:</div>
-            <ul style="font-size: 0.88rem; opacity: 0.85; margin: 0; padding-left: 20px;">
-                <li>Wild Card Seed #1: <strong>$30.00</strong></li>
-                <li>Wild Card Seed #2: <strong>$30.00</strong></li>
-                <li>Wild Card Seed #3: <strong>$30.00</strong></li>
-                <li>Points Title (Top PF): <strong>$60.00</strong></li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with p3:
-        st.markdown("""
-        <div class="metric-card" style="text-align: left; padding: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="badge badge-bigwin">POSTSEASON</span>
-                <strong style="color: #4CAF50; font-size: 1.25rem;">$470 Total</strong>
+            """, unsafe_allow_html=True)
+        with sm2:
+            st.markdown("""
+            <div class="metric-card">
+                <div class="metric-lbl">Regular Season Purse</div>
+                <div class="metric-val" style="color: #FFC107;">$300</div>
+                <div class="metric-sub">3x Div ($150) &bull; 3x WC ($90) &bull; Top PF ($60)</div>
             </div>
-            <h4 style="margin: 10px 0 6px 0;">🏆 Playoff Podium</h4>
-            <div style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 12px;">Awarded to the top finishers in the playoff tournament:</div>
-            <ul style="font-size: 0.88rem; opacity: 0.85; margin: 0; padding-left: 20px;">
-                <li>🥇 League Champion: <strong>$275.00</strong></li>
-                <li>🥈 League Runner-Up: <strong>$135.00</strong></li>
-                <li>🥉 3rd Place Match: <strong>$60.00</strong></li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        with sm3:
+            st.markdown("""
+            <div class="metric-card">
+                <div class="metric-lbl">Postseason Tournament</div>
+                <div class="metric-val" style="color: #2196F3;">$470</div>
+                <div class="metric-sub">🥇 $275 &bull; 🥈 $135 &bull; 🥉 $60</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with sm4:
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-lbl">Top Expected Earner</div>
+                <div class="metric-val" style="color: #9C27B0; font-size: 1.8rem;">${top_ev_franchise['expected_reg_payout']:.2f}</div>
+                <div class="metric-sub">{top_ev_franchise['franchise_name']} (Reg Season EV)</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    # Current Live Division Leaders
-    st.write("")
-    st.divider()
-    st.markdown("#### 📊 Current Division Leaders (Through Week 3)")
-    standings_query = """
-        SELECT a.division, a.franchise_name, b.wins, b.losses, b.points_for
-        FROM `mfl-374514.dbt_production.dim_franchises` a
-        LEFT JOIN `mfl-374514.dbt_production.dim_standings` b ON a.franchise_id = b.franchise_id
-        ORDER BY a.division, CAST(b.wins AS INT64) DESC, b.points_for DESC
-    """
-    try:
-        std_df = pd.DataFrame(functions.bq_query(standings_query))
-        if not std_df.empty:
-            l_col1, l_col2, l_col3 = st.columns(3, gap="large")
-            div_cols = [l_col1, l_col2, l_col3]
-            for col_idx, div_name in enumerate(sorted(std_df["division"].unique())):
-                sub_df = std_df[std_df["division"] == div_name].reset_index(drop=True)
-                top_team = sub_df.iloc[0]
-                with div_cols[col_idx % 3]:
-                    st.metric(
-                        label=f"{div_name} Leader",
-                        value=top_team["franchise_name"],
-                        delta=f"{top_team['wins']}-{top_team['losses']} ({top_team['points_for']:.2f} PF)"
-                    )
-    except Exception:
-        pass
+        st.write("")
+        st.write("")
+
+        # 3 Prize Category Summary Cards with Model Favorites
+        st.markdown("#### 🎁 End of Season Prize Pool &amp; Live Projected Favorites")
+        
+        p1, p2, p3 = st.columns(3, gap="large")
+
+        # Division Favorites
+        lu_top = sim_df[sim_df["division"] == "Left Upright"].sort_values(by="win_division", ascending=False).iloc[0]
+        cb_top = sim_df[sim_df["division"] == "Crossbar"].sort_values(by="win_division", ascending=False).iloc[0]
+        ru_top = sim_df[sim_df["division"] == "Right Upright"].sort_values(by="win_division", ascending=False).iloc[0]
+
+        # Wild Card & Points Favorites
+        wc_contenders = sim_df.sort_values(by="wild_card", ascending=False).head(3)
+        pts_favorite = sim_df.sort_values(by="top_pts", ascending=False).iloc[0]
+
+        # Postseason Favorites
+        one_seed_fav = sim_df.sort_values(by="one_seed", ascending=False).iloc[0]
+        bye_favs = sim_df.sort_values(by="bye", ascending=False).head(2)
+
+        with p1:
+            st.markdown(f"""
+            <div class="metric-card" style="text-align: left; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="badge badge-gold">REGULAR SEASON</span>
+                    <strong style="color: #FFC107; font-size: 1.25rem;">$150 Total</strong>
+                </div>
+                <h4 style="margin: 10px 0 6px 0;">🛡️ 3x Division Titles</h4>
+                <div style="font-size: 0.88rem; opacity: 0.8; margin-bottom: 12px;"><strong>$50.00</strong> to 1st place in each division. Current favorites:</div>
+                <div style="font-size: 0.88rem; line-height: 1.6;">
+                    <div>&bull; <strong>Left Upright ($50):</strong> {lu_top['franchise_name']} <span class="badge badge-gold">{lu_top['win_division']*100:.1f}%</span></div>
+                    <div>&bull; <strong>Crossbar ($50):</strong> {cb_top['franchise_name']} <span class="badge badge-gold">{cb_top['win_division']*100:.1f}%</span></div>
+                    <div>&bull; <strong>Right Upright ($50):</strong> {ru_top['franchise_name']} <span class="badge badge-gold">{ru_top['win_division']*100:.1f}%</span></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with p2:
+            wc_list_html = ", ".join([f"{r['franchise_name']} ({r['wild_card']*100:.1f}%)" for _, r in wc_contenders.iterrows()])
+            st.markdown(f"""
+            <div class="metric-card" style="text-align: left; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="badge badge-silver">REGULAR SEASON</span>
+                    <strong style="color: #64b5f6; font-size: 1.25rem;">$150 Total</strong>
+                </div>
+                <h4 style="margin: 10px 0 6px 0;">🃏 Wild Cards &amp; Points Title</h4>
+                <div style="font-size: 0.88rem; opacity: 0.8; margin-bottom: 12px;">Non-division playoff seeds ($90) &amp; Total Scoring Leader ($60):</div>
+                <div style="font-size: 0.88rem; line-height: 1.6;">
+                    <div>&bull; <strong>Wild Card Contenders ($30 ea):</strong> {wc_list_html}</div>
+                    <div style="margin-top: 4px;">&bull; <strong>Points Title ($60):</strong> {pts_favorite['franchise_name']} <span class="badge badge-bigwin">{pts_favorite['top_pts']*100:.1f}%</span></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with p3:
+            bye_list_html = " &bull; ".join([f"{r['franchise_name']} ({r['bye']*100:.1f}%)" for _, r in bye_favs.iterrows()])
+            st.markdown(f"""
+            <div class="metric-card" style="text-align: left; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="badge badge-bigwin">POSTSEASON</span>
+                    <strong style="color: #4CAF50; font-size: 1.25rem;">$470 Total</strong>
+                </div>
+                <h4 style="margin: 10px 0 6px 0;">🏆 Playoff Podium</h4>
+                <div style="font-size: 0.88rem; opacity: 0.8; margin-bottom: 12px;">Tournament Finishers: 🥇 $275 &bull; 🥈 $135 &bull; 🥉 $60</div>
+                <div style="font-size: 0.88rem; line-height: 1.6;">
+                    <div>&bull; <strong>#1 Seed Favorite:</strong> {one_seed_fav['franchise_name']} <span class="badge badge-bigwin">{one_seed_fav['one_seed']*100:.1f}%</span></div>
+                    <div style="margin-top: 4px;">&bull; <strong>Bye Favorites:</strong> {bye_list_html}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.write("")
+        st.divider()
+
+        # Division Races (3 Columns)
+        st.markdown("#### 🛡️ Division Title Races &amp; Odds ($50 Prize Per Division)")
+        st.caption("Each division winner secures an automatic playoff berth and a $50 cash payout at the conclusion of the regular season.")
+
+        div_cols = st.columns(3, gap="large")
+        divisions_list = ["Left Upright", "Crossbar", "Right Upright"]
+        
+        for idx, div_name in enumerate(divisions_list):
+            div_teams = sim_df[sim_df["division"] == div_name].sort_values(by="win_division", ascending=False).reset_index(drop=True)
+            with div_cols[idx]:
+                st.markdown(f"""
+                <div class="week-card" style="padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0;">{div_name}</h4>
+                        <span class="badge badge-gold">$50.00</span>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                for t_idx, team_row in div_teams.iterrows():
+                    icon_tag = f'<img src="{team_row["icon"]}" width="28" style="vertical-align: middle; border-radius: 50%; margin-right: 8px;">' if team_row["icon"] else '🏈 '
+                    win_div_pct = team_row["win_division"] * 100
+                    badge_style = "badge-gold" if t_idx == 0 and win_div_pct > 30 else ("badge-silver" if win_div_pct > 15 else "badge-bronze")
+                    
+                    st.markdown(f"""
+                    <div class="prob-card" style="margin-bottom: 8px; padding: 10px 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center;">
+                                {icon_tag}
+                                <div>
+                                    <strong style="font-size: 0.92rem;">{team_row['franchise_name']}</strong>
+                                    <div style="font-size: 0.78rem; opacity: 0.7;">{team_row['wins']}-{team_row['losses']} &bull; {team_row['points_for']:.1f} PF &bull; {team_row['proj_wins']:.1f} Proj W</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="badge {badge_style}">{win_div_pct:.1f}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        st.write("")
+        st.divider()
+
+        # Expected Value Breakdown Chart & Full Leaderboard Table
+        st.markdown("#### 💰 Regular Season Expected Prize Money &amp; Probabilities")
+        st.caption("Expected Value (EV) combines each franchise's modeled probability of winning their Division ($50), a Wild Card spot ($30), and the Points Title ($60).")
+
+        # Plotly Stacked Bar Chart for EV
+        ev_chart_df = sim_df.sort_values(by="expected_reg_payout", ascending=True).copy()
+        plot_data = []
+        for _, r in ev_chart_df.iterrows():
+            plot_data.append({"franchise": r["franchise_name"], "Prize Category": "Division Title ($50)", "Expected Cash ($)": round(r["ev_division"], 2)})
+            plot_data.append({"franchise": r["franchise_name"], "Prize Category": "Wild Card ($30)", "Expected Cash ($)": round(r["ev_wild_card"], 2)})
+            plot_data.append({"franchise": r["franchise_name"], "Prize Category": "Points Title ($60)", "Expected Cash ($)": round(r["ev_top_pts"], 2)})
+        
+        plot_df = pd.DataFrame(plot_data)
+        fig_ev = px.bar(
+            plot_df,
+            x="Expected Cash ($)",
+            y="franchise",
+            color="Prize Category",
+            orientation="h",
+            color_discrete_map={
+                "Division Title ($50)": "#FFC107",
+                "Wild Card ($30)": "#42A5F5",
+                "Points Title ($60)": "#66BB6A"
+            }
+        )
+        fig_ev.update_layout(
+            barmode="stack",
+            margin=dict(l=0, r=20, t=10, b=10),
+            height=370,
+            xaxis=dict(title="Expected Regular Season Payout ($)", tickprefix="$"),
+            yaxis=dict(title=""),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig_ev, use_container_width=True)
+
+        st.write("")
+
+        # Interactive Table
+        tbl_df = sim_df[[
+            "franchise_name", "division", "wins", "losses", "proj_wins",
+            "expected_reg_payout", "win_division", "wild_card", "make_playoffs", "top_pts", "bye"
+        ]].copy()
+        
+        tbl_df["Record"] = tbl_df["wins"].astype(str) + "-" + tbl_df["losses"].astype(str)
+        tbl_df["win_division"] = tbl_df["win_division"] * 100
+        tbl_df["wild_card"] = tbl_df["wild_card"] * 100
+        tbl_df["make_playoffs"] = tbl_df["make_playoffs"] * 100
+        tbl_df["top_pts"] = tbl_df["top_pts"] * 100
+        tbl_df["bye"] = tbl_df["bye"] * 100
+
+        tbl_df = tbl_df[[
+            "franchise_name", "division", "Record", "proj_wins",
+            "expected_reg_payout", "win_division", "wild_card", "make_playoffs", "top_pts", "bye"
+        ]]
+        tbl_df.columns = [
+            "Franchise", "Division", "Record", "Proj Wins",
+            "Expected Reg. Cash", "Win Division %", "Wild Card %", "Make Playoffs %", "Points Title %", "Bye %"
+        ]
+
+        st.dataframe(
+            tbl_df,
+            hide_index=True,
+            use_container_width=True,
+            column_config={
+                "Franchise": "Franchise",
+                "Division": "Division",
+                "Record": "Record",
+                "Proj Wins": st.column_config.NumberColumn("Proj Wins", format="%.1f"),
+                "Expected Reg. Cash": st.column_config.NumberColumn("Expected Cash", help="Calculated as (Div Title % × $50) + (Wild Card % × $30) + (Points Title % × $60)", format="$%.2f"),
+                "Win Division %": st.column_config.ProgressColumn("Division %", format="%.1f%%", min_value=0, max_value=100),
+                "Wild Card %": st.column_config.ProgressColumn("Wild Card %", format="%.1f%%", min_value=0, max_value=100),
+                "Make Playoffs %": st.column_config.ProgressColumn("Playoff Odds %", format="%.1f%%", min_value=0, max_value=100),
+                "Points Title %": st.column_config.ProgressColumn("Points Title %", format="%.1f%%", min_value=0, max_value=100),
+                "Bye %": st.column_config.ProgressColumn("Bye %", format="%.1f%%", min_value=0, max_value=100),
+            }
+        )
+
+        st.write("")
+        st.divider()
+
+        # Franchise Profile Deep Dive
+        st.markdown("#### 🔍 Franchise Odds Deep-Dive")
+        sel_team = st.selectbox(
+            "Select a franchise to view comprehensive odds profile:",
+            options=sim_df["franchise_name"].tolist(),
+            key="payout_team_profile_select"
+        )
+
+        if sel_team:
+            t_row = sim_df[sim_df["franchise_name"] == sel_team].iloc[0]
+            
+            p_col1, p_col2 = st.columns([0.3, 0.7], gap="large")
+            with p_col1:
+                icon_html = f'<img src="{t_row["icon"]}" width="70" style="margin-bottom: 8px;">' if t_row["icon"] else '🏈'
+                st.markdown(f"""
+                <div class="podium-card" style="text-align: center; padding: 18px;">
+                    <div>{icon_html}</div>
+                    <h3 style="margin: 4px 0 2px 0;">{t_row['franchise_name']}</h3>
+                    <div style="font-size: 0.85rem; opacity: 0.75;">{t_row['division']} Division</div>
+                    <div style="font-size: 0.85rem; margin-top: 6px;">Record: <strong>{t_row['wins']}-{t_row['losses']}</strong> ({t_row['points_for']:.2f} PF)</div>
+                    <hr style="margin: 10px 0; border: none; border-top: 1px solid rgba(128,128,128,0.2);" />
+                    <div style="font-size: 0.8rem; opacity: 0.75;">Expected Reg. Season Cash:</div>
+                    <div class="metric-val" style="font-size: 1.8rem;">${t_row['expected_reg_payout']:.2f}</div>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">Projected: <strong>{t_row['proj_wins']:.1f} Wins</strong></div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with p_col2:
+                r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
+                with r1_c1:
+                    st.metric("Make Playoffs", f"{t_row['make_playoffs']*100:.1f}%")
+                with r1_c2:
+                    st.metric("Win Division ($50)", f"{t_row['win_division']*100:.1f}%")
+                with r1_c3:
+                    st.metric("Wild Card ($30)", f"{t_row['wild_card']*100:.1f}%")
+                with r1_c4:
+                    st.metric("Points Title ($60)", f"{t_row['top_pts']*100:.1f}%")
+
+                st.write("")
+                r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
+                with r2_c1:
+                    st.metric("#1 Overall Seed", f"{t_row['one_seed']*100:.1f}%")
+                with r2_c2:
+                    st.metric("First-Round Bye", f"{t_row['bye']*100:.1f}%")
+                with r2_c3:
+                    st.metric("Projected Wins", f"{t_row['proj_wins']:.1f}")
+                with r2_c4:
+                    st.metric("#1 Overall Pick", f"{t_row['first_pick']*100:.1f}%")
+
+    else:
+        st.info("Simulation model data for 2026 is currently generating. Check back shortly!")
 
 # =========================================================================
 # TAB 4: RULES & PAYOUT STRUCTURE
