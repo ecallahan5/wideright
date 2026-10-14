@@ -369,7 +369,7 @@ st.write("")
 st.divider()
 
 # --- Section 3: Interactive Team Profile Deep-Dive ---
-st.subheader("🔍 Franchise Simulation Profile", divider="purple")
+st.subheader("🔍 Franchise Simulation Profile", divider="violet")
 
 team_options = sorted(sim_data["franchise_name"].unique())
 selected_team = st.selectbox(
