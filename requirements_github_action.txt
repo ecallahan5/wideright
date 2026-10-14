@@ -6,3 +6,4 @@ google-cloud-storage
 streamlit
 pandas
 numpy
+jinja2>=3.0.0
