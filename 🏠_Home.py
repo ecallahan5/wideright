@@ -166,21 +166,9 @@ with r3:
 
 st.write("")
 
-r4, r5, _ = st.columns(3, gap="medium")
+r4, _, _ = st.columns(3, gap="medium")
 
 with r4:
-    st.markdown("""
-    <div class="toc-card">
-        <span class="badge badge-purple">RULES &amp; VOTING</span>
-        <div class="toc-title">🪧 Holdouts</div>
-        <div class="toc-desc">
-            Annual holdout candidate pool, voting status, contractual market adjustments, and league compliance requirements.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.page_link("pages/3_🪧_Holdouts.py", label="Open Holdouts ➔", icon="🪧")
-
-with r5:
     st.markdown("""
     <div class="toc-card">
         <span class="badge badge-blue">ASSET CAPITAL</span>
