@@ -90,6 +90,9 @@ with st.spinner("Loading extension eligibility data..."):
         # Pull eligible players
         elig_query = "SELECT * FROM `mfl-374514.dbt_production.dim_free_ext_elig`"
         elig_data = functions.bq_query(elig_query)
+        if not elig_data:
+            functions.bq_query.clear()
+            elig_data = functions.bq_query(elig_query)
         ext_eligible_df = pd.DataFrame(elig_data)
         
         if not ext_eligible_df.empty:
@@ -121,23 +124,23 @@ with st.spinner("Loading extension eligibility data..."):
         exclusion_list = []
 
 # --- Sidebar Filters ---
+st.sidebar.header("Filter Options")
+
 if not ext_eligible_df.empty:
-    st.sidebar.header("Filter Options")
-    
     # Get all teams
     all_teams = sorted([t for t in ext_eligible_df["franchise_name"].unique() if t is not None])
     # Filter out teams that already used their extension
     available_teams = [team for team in all_teams if team not in exclusion_list]
-    
-    selected_team = st.sidebar.selectbox(
-        "Choose a Team",
-        options=available_teams,
-        index=None,
-        placeholder="Select Franchise",
-        help="Only includes franchises that have not used their annual free extension this season."
-    )
 else:
-    selected_team = None
+    available_teams = []
+
+selected_team = st.sidebar.selectbox(
+    "Choose a Team",
+    options=available_teams,
+    index=None,
+    placeholder="Select Franchise",
+    help="Only includes franchises that have not used their annual free extension this season."
+)
 
 # --- Session State Management ---
 if "selected_player_str" not in st.session_state:
