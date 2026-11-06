@@ -9,7 +9,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from itertools import combinations
-from functools import cmp_to_key
 import plotly.express as px
 import plotly.graph_objects as go
 import functions
@@ -467,17 +466,51 @@ def enrich_standings_data(sim_data, model_df, sched_df, selected_wk, available_w
                     return False
         return True
 
-    def compare_final_teams(a, b):
-        """Exact league tiebreaker when w_rem == 0: Wins -> H2H -> Points For -> Division Wins."""
-        if wins_map[a] != wins_map[b]:
-            return 1 if wins_map[a] > wins_map[b] else -1
-        if past_h2h[a][b] != past_h2h[b][a]:
-            return 1 if past_h2h[a][b] > past_h2h[b][a] else -1
-        if pf_map[a] != pf_map[b]:
-            return 1 if pf_map[a] > pf_map[b] else -1
-        if past_div_wins[a] != past_div_wins[b]:
-            return 1 if past_div_wins[a] > past_div_wins[b] else -1
-        return 0
+    def resolve_final_tie_group(tied_teams):
+        """Resolves a group of teams tied on final wins: H2H (sweep/round-robin %) -> Points For -> Division Wins."""
+        if len(tied_teams) <= 1:
+            return list(tied_teams)
+
+        if len(tied_teams) == 2:
+            a, b = tied_teams[0], tied_teams[1]
+            if past_h2h[a][b] != past_h2h[b][a]:
+                return [a, b] if past_h2h[a][b] > past_h2h[b][a] else [b, a]
+            return sorted(tied_teams, key=lambda t: (pf_map[t], past_div_wins[t]), reverse=True)
+
+        # Multi-team tie (3+): check round-robin H2H win percentage among the tied group
+        h2h_pct = {}
+        valid_round_robin = True
+        for a in tied_teams:
+            w = sum(past_h2h[a][b] for b in tied_teams if b != a)
+            l = sum(past_h2h[b][a] for b in tied_teams if b != a)
+            if w + l == 0:
+                valid_round_robin = False
+                break
+            h2h_pct[a] = round(w / (w + l), 6)
+
+        if valid_round_robin and len(set(h2h_pct.values())) > 1:
+            ordered = []
+            for pct in sorted(set(h2h_pct.values()), reverse=True):
+                sub_group = [t for t in tied_teams if h2h_pct[t] == pct]
+                if len(sub_group) == 1:
+                    ordered.extend(sub_group)
+                else:
+                    ordered.extend(resolve_final_tie_group(sub_group))
+            return ordered
+
+        # Circular or identical H2H tie: fall back directly to Total Regular Season Points -> Division Wins
+        return sorted(tied_teams, key=lambda t: (pf_map[t], past_div_wins[t]), reverse=True)
+
+    def rank_final_teams(teams):
+        """Exact league tiebreaker when w_rem == 0: Wins -> H2H (2-way or multi-team round-robin) -> Points For -> Division Wins."""
+        win_buckets = {}
+        for t in teams:
+            win_buckets.setdefault(wins_map[t], []).append(t)
+
+        ranked = []
+        for w in sorted(win_buckets.keys(), reverse=True):
+            ranked.extend(resolve_final_tie_group(win_buckets[w]))
+        return ranked
 
     clinch_tags = {}
     clinch_labels = {}
@@ -488,13 +521,13 @@ def enrich_standings_data(sim_data, model_df, sched_df, selected_wk, available_w
         # Season complete: use exact tiebreakers
         div_winners = []
         for d, d_teams in div_teams_map.items():
-            d_sorted = sorted(d_teams, key=cmp_to_key(lambda x, y: compare_final_teams(y, x)))
+            d_sorted = rank_final_teams(d_teams)
             div_winners.append(d_sorted[0])
-        div_winners_sorted = sorted(div_winners, key=cmp_to_key(lambda x, y: compare_final_teams(y, x)))
+        div_winners_sorted = rank_final_teams(div_winners)
         bye_Ids = set(div_winners_sorted[:2])
         div_win_Ids = set(div_winners_sorted)
         non_div = [t for t in team_ids if t not in div_win_Ids]
-        wc_sorted = sorted(non_div, key=cmp_to_key(lambda x, y: compare_final_teams(y, x)))
+        wc_sorted = rank_final_teams(non_div)
         wc_Ids = set(wc_sorted[:3])
         for tid in team_ids:
             if tid in bye_Ids:

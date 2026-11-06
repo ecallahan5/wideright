@@ -11,7 +11,6 @@ import argparse
 import datetime
 import os
 import time
-from functools import cmp_to_key
 import numpy as np
 import pandas as pd
 from google.cloud import bigquery
@@ -429,24 +428,53 @@ def run_simulation(inputs, num_runs=10000):
     pick_cnt = np.zeros(n_teams, dtype=int)
     top_pts_cnt = np.zeros(n_teams, dtype=int)
 
-    def compare_teams(r, t1, t2):
-        """Returns 1 if t1 ranks ahead of t2, -1 if t2 ranks ahead of t1."""
-        if sim_wins[r, t1] != sim_wins[r, t2]:
-            return 1 if sim_wins[r, t1] > sim_wins[r, t2] else -1
-        # Head-to-Head
-        if sim_h2h[r, t1, t2] > sim_h2h[r, t2, t1]:
-            return 1
-        elif sim_h2h[r, t2, t1] > sim_h2h[r, t1, t2]:
-            return -1
-        # Total Regular Season Points
-        if sim_points[r, t1] > sim_points[r, t2]:
-            return 1
-        elif sim_points[r, t1] < sim_points[r, t2]:
-            return -1
-        # Division Record
-        if sim_div_wins[r, t1] > sim_div_wins[r, t2]:
-            return 1
-        return -1
+    def resolve_tie_group(r, tied_teams):
+        """Resolves a group of teams tied on overall wins using H2H (sweep/round-robin %) -> Points -> Div Wins."""
+        if len(tied_teams) <= 1:
+            return list(tied_teams)
+
+        # 2-team tie: direct Head-to-Head -> Total Points -> Division Wins
+        if len(tied_teams) == 2:
+            t1, t2 = tied_teams[0], tied_teams[1]
+            if sim_h2h[r, t1, t2] != sim_h2h[r, t2, t1]:
+                return [t1, t2] if sim_h2h[r, t1, t2] > sim_h2h[r, t2, t1] else [t2, t1]
+            return sorted(tied_teams, key=lambda t: (sim_points[r, t], sim_div_wins[r, t]), reverse=True)
+
+        # Multi-team tie (3+): check round-robin H2H win percentage among the tied group
+        h2h_pct = {}
+        valid_round_robin = True
+        for t1 in tied_teams:
+            w = sum(int(sim_h2h[r, t1, t2]) for t2 in tied_teams if t2 != t1)
+            l = sum(int(sim_h2h[r, t2, t1]) for t2 in tied_teams if t2 != t1)
+            if w + l == 0:
+                valid_round_robin = False
+                break
+            h2h_pct[t1] = round(w / (w + l), 6)
+
+        if valid_round_robin and len(set(h2h_pct.values())) > 1:
+            ordered = []
+            for pct in sorted(set(h2h_pct.values()), reverse=True):
+                sub_group = [t for t in tied_teams if h2h_pct[t] == pct]
+                if len(sub_group) == 1:
+                    ordered.extend(sub_group)
+                else:
+                    ordered.extend(resolve_tie_group(r, sub_group))
+            return ordered
+
+        # Circular or identical H2H tie: fall back directly to Total Regular Season Points -> Division Wins
+        return sorted(tied_teams, key=lambda t: (sim_points[r, t], sim_div_wins[r, t]), reverse=True)
+
+    def rank_teams(r, teams):
+        """Ranks teams from best to worst: Wins -> H2H (2-way or multi-team round-robin) -> Points -> Div Wins."""
+        win_buckets = {}
+        for t in teams:
+            w = int(sim_wins[r, t])
+            win_buckets.setdefault(w, []).append(t)
+
+        ranked = []
+        for w in sorted(win_buckets.keys(), reverse=True):
+            ranked.extend(resolve_tie_group(r, win_buckets[w]))
+        return ranked
 
     for r in range(num_runs):
         # Points Champion
@@ -456,11 +484,11 @@ def run_simulation(inputs, num_runs=10000):
         # 1. Division Winners (1 per division)
         div_winners = []
         for div_name, div_teams in div_indices.items():
-            div_sorted = sorted(div_teams, key=cmp_to_key(lambda a, b: compare_teams(r, b, a)))
+            div_sorted = rank_teams(r, div_teams)
             div_winners.append(div_sorted[0])
 
         # Rank the 3 division winners
-        div_winners_sorted = sorted(div_winners, key=cmp_to_key(lambda a, b: compare_teams(r, b, a)))
+        div_winners_sorted = rank_teams(r, div_winners)
         s1 = div_winners_sorted[0]
         s2 = div_winners_sorted[1]
         s3 = div_winners_sorted[2]
@@ -473,7 +501,7 @@ def run_simulation(inputs, num_runs=10000):
 
         # 2. Wild Cards (top 3 non-division winners)
         non_div_teams = [t for t in range(n_teams) if t not in div_winners]
-        wc_sorted = sorted(non_div_teams, key=cmp_to_key(lambda a, b: compare_teams(r, b, a)))
+        wc_sorted = rank_teams(r, non_div_teams)
         wc1, wc2, wc3 = wc_sorted[0], wc_sorted[1], wc_sorted[2]
 
         wc_cnt[wc1] += 1
@@ -484,7 +512,7 @@ def run_simulation(inputs, num_runs=10000):
             playoff_cnt[t] += 1
 
         # 3. First Draft Pick (worst overall team)
-        worst_team = sorted(range(n_teams), key=cmp_to_key(lambda a, b: compare_teams(r, a, b)))[0]
+        worst_team = rank_teams(r, range(n_teams))[-1]
         pick_cnt[worst_team] += 1
 
     # 5. Aggregate Probabilities
