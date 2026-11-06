@@ -200,7 +200,7 @@ def get_simulation_inputs(client, target_week=None, target_year=None):
     )
     standings_map = {s["franchise_id"]: s for s in standings_data}
 
-    # 4. Weekly Scores
+    # 4. Weekly Scores & Empirical Bayes Early-Season Shrinkage
     scores_data = bq_query(
         client,
         f"""
@@ -210,17 +210,41 @@ def get_simulation_inputs(client, target_week=None, target_year=None):
         """
     )
     scores_df = pd.DataFrame(scores_data)
-    
-    # Calculate Mean & Std Dev per team
-    team_means = scores_df.groupby("franchise_id")["score"].mean().to_dict()
-    team_stds = scores_df.groupby("franchise_id")["score"].std().fillna(15.0).to_dict()
-    
-    # League fallback
-    league_mean = scores_df["score"].mean() if len(scores_df) > 0 else 100.0
-    league_std = scores_df["score"].std() if len(scores_df) > 0 else 15.0
 
-    means_arr = np.array([team_means.get(t, league_mean) for t in team_ids])
-    stds_arr = np.array([team_stds.get(t, league_std) for t in team_ids])
+    # League baseline fallback
+    league_mean = float(scores_df["score"].mean()) if len(scores_df) > 0 else 100.0
+    league_std = float(scores_df["score"].std()) if len(scores_df) > 1 else 15.0
+    if pd.isna(league_std) or league_std <= 0:
+        league_std = 15.0
+
+    # Raw Mean, Std Dev, and Games Played (N) per team
+    if len(scores_df) > 0:
+        grouped_scores = scores_df.groupby("franchise_id")["score"]
+        team_means = grouped_scores.mean().to_dict()
+        team_stds = grouped_scores.std().fillna(league_std).to_dict()
+        team_counts = grouped_scores.count().to_dict()
+    else:
+        team_means, team_stds, team_counts = {}, {}, {}
+
+    # Empirical Bayes Shrinkage:
+    # mu_adj = (N / (N + K)) * x_bar_team + (K / (N + K)) * x_bar_league
+    # Regresses early-season mean and std dev toward the league baseline (K = 4.0 games)
+    shrinkage_k = 4.0
+    means_arr = np.zeros(n_teams, dtype=float)
+    stds_arr = np.zeros(n_teams, dtype=float)
+
+    for i, t in enumerate(team_ids):
+        n_games = float(team_counts.get(t, 0))
+        w_team = n_games / (n_games + shrinkage_k)
+        w_league = shrinkage_k / (n_games + shrinkage_k)
+
+        raw_mean = float(team_means.get(t, league_mean))
+        raw_std = float(team_stds.get(t, league_std))
+        if pd.isna(raw_std) or raw_std <= 0:
+            raw_std = league_std
+
+        means_arr[i] = (w_team * raw_mean) + (w_league * league_mean)
+        stds_arr[i] = (w_team * raw_std) + (w_league * league_std)
 
     # 5. Schedule
     sched_data = bq_query(
@@ -354,9 +378,15 @@ def run_simulation(inputs, num_runs=10000):
         away_means = effective_means[away_indices]
         away_stds = stds_arr[away_indices]
 
-        # Simulate scores for all matchups in this week
-        home_scores = np.random.normal(home_means, home_stds, size=(num_runs, n_matchups))
-        away_scores = np.random.normal(away_means, away_stds, size=(num_runs, n_matchups))
+        # Simulate scores for all matchups in this week using a right-skewed Gamma distribution
+        # Parameterized by exact mean (mu) and std dev (sigma): shape k = (mu/sigma)^2, scale theta = sigma^2/mu
+        home_shape = (home_means / home_stds) ** 2
+        home_scale = (home_stds ** 2) / home_means
+        away_shape = (away_means / away_stds) ** 2
+        away_scale = (away_stds ** 2) / away_means
+
+        home_scores = np.random.gamma(home_shape, home_scale, size=(num_runs, n_matchups))
+        away_scores = np.random.gamma(away_shape, away_scale, size=(num_runs, n_matchups))
 
         # A. Head-to-Head Outcomes
         home_win = home_scores > away_scores
