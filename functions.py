@@ -125,8 +125,8 @@ client = bigquery.Client(credentials=credentials, project=gcp_creds["project_id"
 # client = bigquery.Client(credentials=credentials, project=st.secrets["gcp_service_account"]["project_id"])
 
 # Perform query.
-# Uses st.cache_data to only rerun when the query changes or after 1 day.
-@st.cache_data(show_spinner="Trying to figure out how to beat Kevin...", ttl=datetime.timedelta(days=1))
+# Uses st.cache_data to only rerun when the query changes or after 5 minutes.
+@st.cache_data(show_spinner="Trying to figure out how to beat Kevin...", ttl=300)
 def bq_query(query):
     query_job = client.query(query)
     rows_raw = query_job.result()
