@@ -1,8 +1,14 @@
 import datetime as dt
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import requests
 import pandas as pd
 import streamlit as st
+
+try:
+    EASTERN_TZ = ZoneInfo("America/New_York")
+except Exception:
+    EASTERN_TZ = timezone(dt.timedelta(hours=-5))
 
 #Images
 dollar_icon = "https://icons.veryicon.com/png/o/business/business-icon-2/money-42.png"
@@ -49,6 +55,52 @@ def get_league_mfl_data():
 
 if st.runtime.exists():
     get_league_mfl_data = st.cache_data(ttl=dt.timedelta(days=1))(get_league_mfl_data)
+
+
+def _fetch_week_kickoff_utc(year: int, week: int, thursday_only: bool = False) -> datetime:
+    """Fetch the UTC kickoff datetime of the first NFL game in the given week from MFL."""
+    url = f"https://api.myfantasyleague.com/{year}/export?TYPE=nflSchedule&W={week}&JSON=1"
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    matchups = resp.json().get("nflSchedule", {}).get("matchup", [])
+    if isinstance(matchups, dict):
+        matchups = [matchups]
+
+    kickoffs = [
+        datetime.fromtimestamp(int(m["kickoff"]), tz=timezone.utc)
+        for m in matchups
+        if m.get("kickoff")
+    ]
+    if not kickoffs:
+        raise ValueError(f"No Week {week} matchups found for {year}")
+
+    if thursday_only:
+        thursday_kickoffs = [
+            ko for ko in kickoffs if ko.astimezone(EASTERN_TZ).weekday() == 3
+        ]
+        if thursday_kickoffs:
+            return min(thursday_kickoffs)
+
+    return min(kickoffs)
+
+
+if st.runtime.exists():
+    _fetch_week_kickoff_utc = st.cache_data(ttl=dt.timedelta(days=1))(_fetch_week_kickoff_utc)
+
+
+def get_week_kickoff(year: int, week: int, thursday_only: bool = False):
+    """Return the UTC datetime of the first kickoff for the given NFL week, or None on failure."""
+    try:
+        return _fetch_week_kickoff_utc(year, week, thursday_only=thursday_only)
+    except Exception:
+        return None
+
+
+def format_eastern_dt(dt_utc: datetime) -> str:
+    """Format a UTC datetime in US Eastern time (e.g., 'Thursday, November 19, 2026 at 8:15 PM EST')."""
+    dt_et = dt_utc.astimezone(EASTERN_TZ)
+    time_str = dt_et.strftime("%I:%M %p").lstrip("0")
+    return f"{dt_et.strftime('%A, %B')} {dt_et.day}, {dt_et.year} at {time_str} {dt_et.tzname()}"
 
 roster_size = 20  # This seems to be a hardcoded override
 contract_cap = 42 # This is hardcoded

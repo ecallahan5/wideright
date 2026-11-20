@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import functions
 import global_vars
 
@@ -77,11 +77,32 @@ try:
 except Exception:
     current_wk = 1
 
+# Check Week 11 Thursday kickoff deadline (shutoff for the season)
+week11_kickoff = global_vars.get_week_kickoff(global_vars.league_year, 11, thursday_only=True)
+now_utc = datetime.now(timezone.utc)
+claims_closed = (now_utc >= week11_kickoff) if week11_kickoff is not None else (current_wk > 11)
+
+if claims_closed:
+    st.title(f"🚕 Taxi Squad Claims — {global_vars.league_year} Season")
+    if week11_kickoff is not None:
+        st.warning(
+            f"🔒 **Taxi Squad Claims Closed:** The {global_vars.league_year} taxi claim window closed at kickoff of the "
+            f"Week 11 Thursday game (**{global_vars.format_eastern_dt(week11_kickoff)}**). Claims will reopen next season."
+        )
+    else:
+        st.warning(
+            f"🔒 **Taxi Squad Claims Closed:** The {global_vars.league_year} taxi claim window closed at Week 11 kickoff. "
+            "Claims will reopen next season."
+        )
+    st.stop()
+
 st.title(f"🚕 Taxi Squad Claims — Week {current_wk}")
 st.write(
     "Franchises may claim eligible players from opposing taxi squads. "
     "Once submitted, the owning franchise has **7 days** to either promote the player to their active roster or surrender him to the claiming team."
 )
+if week11_kickoff is not None:
+    st.caption(f"⏳ Season claim deadline: kickoff of the Week 11 Thursday game ({global_vars.format_eastern_dt(week11_kickoff)}).")
 
 # FFP Rule Status Alert
 if current_wk >= 8:
@@ -283,45 +304,51 @@ if not claimables_df.empty:
                 )
                 
                 if confirm_claim:
-                    with st.spinner("Submitting taxi claim..."):
-                        try:
-                            discord_secrets = st.secrets.get("discord", {})
-                            webhook_url = discord_secrets.get("taxi_url")
-                            
-                            current_time = datetime.now()
-                            deadline_str = (current_time + timedelta(weeks=1)).strftime("%A, %B %d, %Y at %I:%M %p")
-                            
-                            # Build Discord message with user mentions
-                            claiming_tag = f"<@{claiming_discord}>" if claiming_discord and pd.notna(claiming_discord) else f"**{selected_team}**"
-                            owning_tag = f"<@{owning_discord}>" if owning_discord and pd.notna(owning_discord) else f"**{target_owner}**"
-                            
-                            if target_ffp:
-                                comp_str = f"Round {int(target_comp)}" if pd.notna(target_comp) else "Draft Pick"
-                                message = (
-                                    f"🚕 **TAXI SQUAD CLAIM (FFP)**\n\n"
-                                    f"{claiming_tag} is submitting an official claim on **{target_raw_name}** ({target_pos}) from {owning_tag}.\n"
-                                    f"⚠️ **Compensation:** This is an FFP claim requiring **{comp_str}** draft pick compensation.\n"
-                                    f"⏳ **Resolution Deadline:** {owning_tag} must promote or surrender by **{deadline_str}**."
-                                )
-                            else:
-                                message = (
-                                    f"🚕 **TAXI SQUAD CLAIM**\n\n"
-                                    f"{claiming_tag} is submitting an official claim on **{target_raw_name}** ({target_pos}) from {owning_tag}.\n"
-                                    f"⏳ **Resolution Deadline:** {owning_tag} must promote or surrender by **{deadline_str}**."
-                                )
+                    if week11_kickoff is not None and datetime.now(timezone.utc) >= week11_kickoff:
+                        st.error(
+                            f"🔒 Taxi squad claims closed at kickoff of the Week 11 Thursday game "
+                            f"({global_vars.format_eastern_dt(week11_kickoff)}). This claim was not submitted."
+                        )
+                    else:
+                        with st.spinner("Submitting taxi claim..."):
+                            try:
+                                discord_secrets = st.secrets.get("discord", {})
+                                webhook_url = discord_secrets.get("taxi_url")
                                 
-                            if webhook_url:
-                                resp = requests.post(webhook_url, json={"content": message}, timeout=10)
-                                resp.raise_for_status()
+                                current_time = datetime.now()
+                                deadline_str = (current_time + timedelta(weeks=1)).strftime("%A, %B %d, %Y at %I:%M %p")
                                 
-                            st.balloons()
-                            st.toast("Taxi claim successfully submitted!", icon="🎉")
-                            st.success(
-                                f"🎉 Claim successfully recorded for **{target_name}**! "
-                                f"A Discord notification has been dispatched. **{target_owner}** has until **{deadline_str}** to respond."
-                            )
-                        except Exception as e:
-                            st.error(f"Failed to submit claim to Discord: {e}")
+                                # Build Discord message with user mentions
+                                claiming_tag = f"<@{claiming_discord}>" if claiming_discord and pd.notna(claiming_discord) else f"**{selected_team}**"
+                                owning_tag = f"<@{owning_discord}>" if owning_discord and pd.notna(owning_discord) else f"**{target_owner}**"
+                                
+                                if target_ffp:
+                                    comp_str = f"Round {int(target_comp)}" if pd.notna(target_comp) else "Draft Pick"
+                                    message = (
+                                        f"🚕 **TAXI SQUAD CLAIM (FFP)**\n\n"
+                                        f"{claiming_tag} is submitting an official claim on **{target_raw_name}** ({target_pos}) from {owning_tag}.\n"
+                                        f"⚠️ **Compensation:** This is an FFP claim requiring **{comp_str}** draft pick compensation.\n"
+                                        f"⏳ **Resolution Deadline:** {owning_tag} must promote or surrender by **{deadline_str}**."
+                                    )
+                                else:
+                                    message = (
+                                        f"🚕 **TAXI SQUAD CLAIM**\n\n"
+                                        f"{claiming_tag} is submitting an official claim on **{target_raw_name}** ({target_pos}) from {owning_tag}.\n"
+                                        f"⏳ **Resolution Deadline:** {owning_tag} must promote or surrender by **{deadline_str}**."
+                                    )
+                                    
+                                if webhook_url:
+                                    resp = requests.post(webhook_url, json={"content": message}, timeout=10)
+                                    resp.raise_for_status()
+                                    
+                                st.balloons()
+                                st.toast("Taxi claim successfully submitted!", icon="🎉")
+                                st.success(
+                                    f"🎉 Claim successfully recorded for **{target_name}**! "
+                                    f"A Discord notification has been dispatched. **{target_owner}** has until **{deadline_str}** to respond."
+                                )
+                            except Exception as e:
+                                st.error(f"Failed to submit claim to Discord: {e}")
         else:
             st.info(f"No eligible taxi players available for **{selected_team}** to claim.")
     else:

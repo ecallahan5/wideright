@@ -2,11 +2,43 @@ import streamlit as st
 import pandas as pd
 import requests
 import datetime
+from datetime import timezone
 import functions
 import global_vars
 
 st.set_page_config(layout="wide")
+
+# Check Week 12 kickoff deadline (shutoff for the season)
+week12_kickoff = global_vars.get_week_kickoff(global_vars.league_year, 12)
+now_utc = datetime.datetime.now(timezone.utc)
+
+if week12_kickoff is not None:
+    extensions_closed = now_utc >= week12_kickoff
+else:
+    try:
+        wk_rows = functions.bq_query("SELECT current_week FROM `mfl-374514.dbt_production.dim_current_week`")
+        current_wk = wk_rows[0]["current_week"] if wk_rows else 1
+    except Exception:
+        current_wk = 1
+    extensions_closed = current_wk > 12
+
+if extensions_closed:
+    st.title(f"🆓 Annual Free Extensions — {global_vars.league_year} Season")
+    if week12_kickoff is not None:
+        st.warning(
+            f"🔒 **Free Extensions Closed:** The {global_vars.league_year} annual free extension window closed at "
+            f"Week 12 kickoff (**{global_vars.format_eastern_dt(week12_kickoff)}**). Extensions will reopen next season."
+        )
+    else:
+        st.warning(
+            f"🔒 **Free Extensions Closed:** The {global_vars.league_year} annual free extension window closed at "
+            "Week 12 kickoff. Extensions will reopen next season."
+        )
+    st.stop()
+
 st.title("🆓 Annual Free Extensions")
+if week12_kickoff is not None:
+    st.caption(f"⏳ Season extension deadline: Week 12 kickoff ({global_vars.format_eastern_dt(week12_kickoff)}).")
 st.divider()
 
 # --- Custom Styling for candidate profile cards ---
@@ -335,33 +367,39 @@ if selected_team:
                             extend_button = st.button("Extend him!")
                             
                             if extend_button:
-                                with st.spinner("Submitting extension claim..."):
-                                    try:
-                                        webhook_url = st.secrets["discord"]["contracts_url"]
-                                        
-                                        if adj_needed:
-                                            content = (
-                                                f"🚨 **ANNUAL FREE EXTENSION ALERT!** 🚨\n\n"
-                                                f"**{selected_team}** has extended **{format_display_name(player_name)} ({player_pos})** for **{ext_length} years** at a salary of **${target_salary:.2f}**.\n\n"
-                                                f"⚠️ *The current contract is below the minimum required. <@197385905638604800> will need to adjust the current year's salary.*"
-                                            )
-                                        else:
-                                            content = (
-                                                f"🚨 **ANNUAL FREE EXTENSION ALERT!** 🚨\n\n"
-                                                f"**{selected_team}** has extended **{format_display_name(player_name)} ({player_pos})** for **{ext_length} years** at a salary of **${target_salary:.2f}**."
-                                            )
+                                if week12_kickoff is not None and datetime.datetime.now(timezone.utc) >= week12_kickoff:
+                                    st.error(
+                                        f"🔒 Annual free extensions closed at Week 12 kickoff "
+                                        f"({global_vars.format_eastern_dt(week12_kickoff)}). This extension was not submitted."
+                                    )
+                                else:
+                                    with st.spinner("Submitting extension claim..."):
+                                        try:
+                                            webhook_url = st.secrets["discord"]["contracts_url"]
                                             
-                                        # Post to discord
-                                        r = requests.post(webhook_url, json={"content": content}, timeout=10)
-                                        if r.status_code in [200, 204]:
-                                            st.cache_data.clear()  # Clear cache so dropdown list refreshes immediately
-                                            st.balloons()
-                                            st.success(f"Success! Extension submitted for **{format_display_name(player_name)}**! The Discord announcement has been sent.")
-                                            st.toast(f"Extension claim submitted!", icon='🎉')
-                                        else:
-                                            st.error(f"Failed to send Discord alert: {r.status_code} {r.text}")
-                                    except Exception as e:
-                                        st.error(f"Failed to submit extension claim: {e}")
+                                            if adj_needed:
+                                                content = (
+                                                    f"🚨 **ANNUAL FREE EXTENSION ALERT!** 🚨\n\n"
+                                                    f"**{selected_team}** has extended **{format_display_name(player_name)} ({player_pos})** for **{ext_length} years** at a salary of **${target_salary:.2f}**.\n\n"
+                                                    f"⚠️ *The current contract is below the minimum required. <@197385905638604800> will need to adjust the current year's salary.*"
+                                                )
+                                            else:
+                                                content = (
+                                                    f"🚨 **ANNUAL FREE EXTENSION ALERT!** 🚨\n\n"
+                                                    f"**{selected_team}** has extended **{format_display_name(player_name)} ({player_pos})** for **{ext_length} years** at a salary of **${target_salary:.2f}**."
+                                                )
+                                                
+                                            # Post to discord
+                                            r = requests.post(webhook_url, json={"content": content}, timeout=10)
+                                            if r.status_code in [200, 204]:
+                                                st.cache_data.clear()  # Clear cache so dropdown list refreshes immediately
+                                                st.balloons()
+                                                st.success(f"Success! Extension submitted for **{format_display_name(player_name)}**! The Discord announcement has been sent.")
+                                                st.toast(f"Extension claim submitted!", icon='🎉')
+                                            else:
+                                                st.error(f"Failed to send Discord alert: {r.status_code} {r.text}")
+                                        except Exception as e:
+                                            st.error(f"Failed to submit extension claim: {e}")
         else:
             st.info("No players match the selected positions.")
     else:
