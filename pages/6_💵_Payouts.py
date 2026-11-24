@@ -357,9 +357,72 @@ def fetch_payouts_data():
     )
     events.extend(reg_awards["events"])
 
-    # 4d. Merge any non-overlapping postseason payouts from external.payouts_2026 (if populated)
+    # 4d. Automatically credit finalized Week 17 Postseason Podium awards ($275 / $135 / $60) when complete
+    postseason_podium_credited = False
+    if recent_completed_wk >= 17:
+        try:
+            ps_final_rows = functions.bq_query("""
+                SELECT round_name, high_franchise_id, low_franchise_id,
+                       high_actual_pts, low_actual_pts, winner_franchise_id
+                FROM `mfl-374514.external.postseason_matchups`
+                WHERE year = 2026
+                  AND bracket = 'championship'
+                  AND week = 17
+                  AND winner_franchise_id IS NOT NULL
+                QUALIFY ROW_NUMBER() OVER (PARTITION BY round_name ORDER BY after_week DESC) = 1
+            """)
+            for row in ps_final_rows:
+                rname = row.get("round_name")
+                winner_id = row.get("winner_franchise_id")
+                h_id = row.get("high_franchise_id")
+                l_id = row.get("low_franchise_id")
+                loser_id = l_id if winner_id == h_id else h_id
+                if rname == "Finals" and winner_id:
+                    events.append({
+                        "week": 17,
+                        "event_type": "League Champion",
+                        "category": "season",
+                        "franchise_id": winner_id,
+                        "franchise_name": id_to_name.get(winner_id, winner_id),
+                        "icon": id_to_icon.get(winner_id, ""),
+                        "score": row.get("high_actual_pts") if winner_id == h_id else row.get("low_actual_pts"),
+                        "payout": standings_utils.CHAMPION_PAYOUT,
+                        "description": f"2026 League Champion (${standings_utils.CHAMPION_PAYOUT})",
+                    })
+                    postseason_podium_credited = True
+                    if loser_id:
+                        events.append({
+                            "week": 17,
+                            "event_type": "League Runner-Up",
+                            "category": "season",
+                            "franchise_id": loser_id,
+                            "franchise_name": id_to_name.get(loser_id, loser_id),
+                            "icon": id_to_icon.get(loser_id, ""),
+                            "score": row.get("low_actual_pts") if winner_id == h_id else row.get("high_actual_pts"),
+                            "payout": standings_utils.RUNNER_UP_PAYOUT,
+                            "description": f"2026 League Runner-Up (${standings_utils.RUNNER_UP_PAYOUT})",
+                        })
+                elif rname == "3rd Place" and winner_id:
+                    events.append({
+                        "week": 17,
+                        "event_type": "League 3rd Place",
+                        "category": "season",
+                        "franchise_id": winner_id,
+                        "franchise_name": id_to_name.get(winner_id, winner_id),
+                        "icon": id_to_icon.get(winner_id, ""),
+                        "score": row.get("high_actual_pts") if winner_id == h_id else row.get("low_actual_pts"),
+                        "payout": standings_utils.THIRD_PLACE_PAYOUT,
+                        "description": f"2026 League 3rd Place (${standings_utils.THIRD_PLACE_PAYOUT})",
+                    })
+                    postseason_podium_credited = True
+        except Exception:
+            postseason_podium_credited = False
+
+    # 4e. Merge any non-overlapping manual/postseason payouts from external.payouts_2026 (if populated)
     if has_official_table and official_payouts is not None:
         auto_keywords = ("high score", "big win", "division", "wild card", "points")
+        if postseason_podium_credited:
+            auto_keywords = auto_keywords + ("champ", "runner", "3rd", "third", "1st place", "2nd place")
         for _, r in official_payouts.iterrows():
             ev_type = str(r.get("event_type") or "").strip()
             ev_lower = ev_type.lower()
@@ -517,6 +580,38 @@ def fetch_payout_projections_data():
         return df
     except Exception:
         return pd.DataFrame()
+
+@st.cache_data(ttl=300)
+def fetch_postseason_projections_data():
+    """Fetches full postseason simulation probabilities (Championship, Runner-Up, 3rd Place, Extra Pick)."""
+    query = """
+        SELECT
+            franchise_id,
+            after_week,
+            bracket,
+            seed,
+            CAST(reach_semis AS FLOAT64) AS reach_semis,
+            CAST(reach_finals AS FLOAT64) AS reach_finals,
+            CAST(win_championship AS FLOAT64) AS win_championship,
+            CAST(runner_up AS FLOAT64) AS runner_up,
+            CAST(third_place AS FLOAT64) AS third_place,
+            CAST(extra_pick AS FLOAT64) AS extra_pick
+        FROM `mfl-374514.external.postseason_sims`
+        WHERE year = 2026
+        ORDER BY after_week DESC, win_championship DESC
+    """
+    try:
+        rows = functions.bq_query(query)
+        df = pd.DataFrame(rows)
+        if not df.empty:
+            df["ev_champ"] = df["win_championship"] * 275.0
+            df["ev_runner_up"] = df["runner_up"] * 135.0
+            df["ev_third"] = df["third_place"] * 60.0
+            df["expected_postseason_payout"] = df["ev_champ"] + df["ev_runner_up"] + df["ev_third"]
+        return df
+    except Exception:
+        return pd.DataFrame()
+
 
 data = fetch_payouts_data()
 leaderboard_df = data["leaderboard"]
@@ -860,16 +955,17 @@ with tab_projections:
     st.subheader("Regular Season & Playoff Prizes Up for Grabs", divider="orange")
 
     proj_model_df = fetch_payout_projections_data()
+    postseason_model_df = fetch_postseason_projections_data()
 
     if not proj_model_df.empty:
         available_model_weeks = sorted(proj_model_df["after_week"].unique(), reverse=True)
-        
+
         # Header controls
         ctrl_col1, ctrl_col2 = st.columns([0.7, 0.3])
         with ctrl_col1:
             st.markdown("""
             <div style="font-size: 0.95rem; opacity: 0.85; margin-top: 4px;">
-                Probabilities and expected prize values generated from <strong>10,000 Monte Carlo regular season simulations</strong>, incorporating actual scores, player projections, and remaining schedules.
+                Probabilities and expected prize values generated from <strong>10,000 Monte Carlo regular-season &amp; playoff simulations</strong>, incorporating actual scores, optimal roster projections, and reseeded Weeks 15–17 brackets.
             </div>
             """, unsafe_allow_html=True)
         with ctrl_col2:
@@ -881,7 +977,32 @@ with tab_projections:
             )
 
         sim_df = proj_model_df[proj_model_df["after_week"] == selected_model_wk].copy()
-        sim_df = sim_df.sort_values(by="expected_reg_payout", ascending=False).reset_index(drop=True)
+
+        # Join postseason probabilities for this week (or latest postseason week if currently in Weeks 15-17)
+        has_postseason_ev = False
+        if not postseason_model_df.empty:
+            ps_for_wk = postseason_model_df[postseason_model_df["after_week"] == selected_model_wk]
+            if ps_for_wk.empty and selected_model_wk == available_model_weeks[0]:
+                latest_ps_wk = int(postseason_model_df["after_week"].max())
+                ps_for_wk = postseason_model_df[postseason_model_df["after_week"] == latest_ps_wk]
+            if not ps_for_wk.empty:
+                ps_cols = [
+                    "franchise_id", "reach_semis", "reach_finals",
+                    "win_championship", "runner_up", "third_place", "extra_pick",
+                    "ev_champ", "ev_runner_up", "ev_third", "expected_postseason_payout",
+                ]
+                sim_df = sim_df.merge(ps_for_wk[ps_cols], on="franchise_id", how="left")
+                for col in ps_cols[1:]:
+                    sim_df[col] = sim_df[col].fillna(0.0)
+                sim_df["expected_total_eos_payout"] = sim_df["expected_reg_payout"] + sim_df["expected_postseason_payout"]
+                has_postseason_ev = True
+
+        if not has_postseason_ev:
+            sim_df["expected_postseason_payout"] = 0.0
+            sim_df["expected_total_eos_payout"] = sim_df["expected_reg_payout"]
+
+        sort_ev_col = "expected_total_eos_payout" if has_postseason_ev else "expected_reg_payout"
+        sim_df = sim_df.sort_values(by=sort_ev_col, ascending=False).reset_index(drop=True)
 
         top_ev_franchise = sim_df.iloc[0]
 
@@ -917,11 +1038,12 @@ with tab_projections:
             </div>
             """, unsafe_allow_html=True)
         with sm4:
+            ev_label_sub = "Full Season EOS EV" if has_postseason_ev else "Reg Season EV"
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-lbl">Top Expected Earner</div>
-                <div class="metric-val" style="color: #9C27B0; font-size: 1.8rem;">${top_ev_franchise['expected_reg_payout']:.2f}</div>
-                <div class="metric-sub">{top_ev_franchise['franchise_name']} (Reg Season EV)</div>
+                <div class="metric-val" style="color: #9C27B0; font-size: 1.8rem;">${top_ev_franchise[sort_ev_col]:.2f}</div>
+                <div class="metric-sub">{top_ev_franchise['franchise_name']} ({ev_label_sub})</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -930,7 +1052,7 @@ with tab_projections:
 
         # 3 Prize Category Summary Cards with Model Favorites
         st.markdown("#### 🎁 End of Season Prize Pool &amp; Live Projected Favorites")
-        
+
         p1, p2, p3 = st.columns(3, gap="large")
         is_latest_model_wk = (selected_model_wk == available_model_weeks[0])
 
@@ -1023,7 +1145,26 @@ with tab_projections:
             """, unsafe_allow_html=True)
 
         with p3:
-            bye_list_html = " &bull; ".join([f"{r['franchise_name']} ({r['bye']*100:.1f}%)" for _, r in bye_favs.iterrows()])
+            if has_postseason_ev:
+                top_champs = sim_df.sort_values(by="win_championship", ascending=False).head(3)
+                champ_fav = top_champs.iloc[0]
+                contenders_html = " &bull; ".join(
+                    [f"{r['franchise_name']} ({r['win_championship']*100:.1f}%)" for _, r in top_champs.iloc[1:].iterrows()]
+                )
+                p3_body = (
+                    f'<div>&bull; <strong>Title Favorite ($275):</strong> {champ_fav["franchise_name"]} '
+                    f'<span class="badge badge-bigwin">{champ_fav["win_championship"]*100:.1f}%</span></div>'
+                    f'<div style="margin-top: 4px;">&bull; <strong>Top Challengers:</strong> {contenders_html}</div>'
+                    f'<div style="margin-top: 4px;">&bull; <strong>Top Playoff EV:</strong> {champ_fav["franchise_name"]} '
+                    f'(${champ_fav["expected_postseason_payout"]:.2f})</div>'
+                )
+            else:
+                bye_list_html = " &bull; ".join([f"{r['franchise_name']} ({r['bye']*100:.1f}%)" for _, r in bye_favs.iterrows()])
+                p3_body = (
+                    f'<div>&bull; <strong>#1 Seed Favorite:</strong> {one_seed_fav["franchise_name"]} '
+                    f'<span class="badge badge-bigwin">{one_seed_fav["one_seed"]*100:.1f}%</span></div>'
+                    f'<div style="margin-top: 4px;">&bull; <strong>Bye Favorites:</strong> {bye_list_html}</div>'
+                )
             st.markdown(f"""
             <div class="metric-card" style="text-align: left; padding: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1032,10 +1173,7 @@ with tab_projections:
                 </div>
                 <h4 style="margin: 10px 0 6px 0;">🏆 Playoff Podium</h4>
                 <div style="font-size: 0.88rem; opacity: 0.8; margin-bottom: 12px;">Tournament Finishers: 🥇 $275 &bull; 🥈 $135 &bull; 🥉 $60</div>
-                <div style="font-size: 0.88rem; line-height: 1.6;">
-                    <div>&bull; <strong>#1 Seed Favorite:</strong> {one_seed_fav['franchise_name']} <span class="badge badge-bigwin">{one_seed_fav['one_seed']*100:.1f}%</span></div>
-                    <div style="margin-top: 4px;">&bull; <strong>Bye Favorites:</strong> {bye_list_html}</div>
-                </div>
+                <div style="font-size: 0.88rem; line-height: 1.6;">{p3_body}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1044,17 +1182,25 @@ with tab_projections:
         st.divider()
 
         # Expected Value Breakdown Chart & Full Leaderboard Table
-        st.markdown("#### 💰 Regular Season Expected Prize Money &amp; Probabilities")
-        st.caption("Expected Value (EV) combines each franchise's modeled probability of winning their Division ($50), a Wild Card spot ($30), and the Points Title ($60).")
+        if has_postseason_ev:
+            st.markdown("#### 💰 Full-Season Expected Prize Money ($770 EOS Pool)")
+            st.caption("Expected Value (EV) combines Regular Season prizes (Division $50, Wild Card $30, Points Title $60) AND simulated Weeks 15–17 Playoff Podium prizes (Champion $275, Runner-Up $135, 3rd Place $60).")
+        else:
+            st.markdown("#### 💰 Regular Season Expected Prize Money &amp; Probabilities")
+            st.caption("Expected Value (EV) combines each franchise's modeled probability of winning their Division ($50), a Wild Card spot ($30), and the Points Title ($60). Run the updated Playoff Odds Simulation to include Postseason ($470) EV.")
 
         # Plotly Stacked Bar Chart for EV
-        ev_chart_df = sim_df.sort_values(by="expected_reg_payout", ascending=True).copy()
+        ev_chart_df = sim_df.sort_values(by=sort_ev_col, ascending=True).copy()
         plot_data = []
         for _, r in ev_chart_df.iterrows():
             plot_data.append({"franchise": r["franchise_name"], "Prize Category": "Division Title ($50)", "Expected Cash ($)": round(r["ev_division"], 2)})
             plot_data.append({"franchise": r["franchise_name"], "Prize Category": "Wild Card ($30)", "Expected Cash ($)": round(r["ev_wild_card"], 2)})
             plot_data.append({"franchise": r["franchise_name"], "Prize Category": "Points Title ($60)", "Expected Cash ($)": round(r["ev_top_pts"], 2)})
-        
+            if has_postseason_ev:
+                plot_data.append({"franchise": r["franchise_name"], "Prize Category": "3rd Place ($60)", "Expected Cash ($)": round(r["ev_third"], 2)})
+                plot_data.append({"franchise": r["franchise_name"], "Prize Category": "Runner-Up ($135)", "Expected Cash ($)": round(r["ev_runner_up"], 2)})
+                plot_data.append({"franchise": r["franchise_name"], "Prize Category": "Champion ($275)", "Expected Cash ($)": round(r["ev_champ"], 2)})
+
         plot_df = pd.DataFrame(plot_data)
         fig_ev = px.bar(
             plot_df,
@@ -1065,14 +1211,17 @@ with tab_projections:
             color_discrete_map={
                 "Division Title ($50)": "#FFC107",
                 "Wild Card ($30)": "#42A5F5",
-                "Points Title ($60)": "#66BB6A"
+                "Points Title ($60)": "#66BB6A",
+                "3rd Place ($60)": "#FF8A65",
+                "Runner-Up ($135)": "#B0BEC5",
+                "Champion ($275)": "#AB47BC",
             }
         )
         fig_ev.update_layout(
             barmode="stack",
             margin=dict(l=0, r=20, t=10, b=10),
-            height=370,
-            xaxis=dict(title="Expected Regular Season Payout ($)", tickprefix="$"),
+            height=400 if has_postseason_ev else 370,
+            xaxis=dict(title="Expected End-of-Season Payout ($)", tickprefix="$"),
             yaxis=dict(title=""),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
@@ -1081,54 +1230,94 @@ with tab_projections:
         st.write("")
 
         # Interactive Table
-        tbl_df = sim_df[[
-            "franchise_name", "division", "wins", "losses", "proj_wins",
-            "expected_reg_payout", "win_division", "wild_card", "make_playoffs", "top_pts", "bye"
-        ]].copy()
-        
-        tbl_df["Record"] = tbl_df["wins"].astype(str) + "-" + tbl_df["losses"].astype(str)
-        tbl_df["win_division"] = tbl_df["win_division"] * 100
-        tbl_df["wild_card"] = tbl_df["wild_card"] * 100
-        tbl_df["make_playoffs"] = tbl_df["make_playoffs"] * 100
-        tbl_df["top_pts"] = tbl_df["top_pts"] * 100
-        tbl_df["bye"] = tbl_df["bye"] * 100
+        if has_postseason_ev:
+            tbl_df = sim_df[[
+                "franchise_name", "division", "wins", "losses", "proj_wins",
+                "expected_total_eos_payout", "expected_reg_payout", "expected_postseason_payout",
+                "win_championship", "runner_up", "third_place", "win_division", "wild_card", "top_pts"
+            ]].copy()
+            tbl_df["Record"] = tbl_df["wins"].astype(str) + "-" + tbl_df["losses"].astype(str)
+            for pct_col in ["win_championship", "runner_up", "third_place", "win_division", "wild_card", "top_pts"]:
+                tbl_df[pct_col] = tbl_df[pct_col] * 100
+            tbl_df = tbl_df[[
+                "franchise_name", "division", "Record", "proj_wins",
+                "expected_total_eos_payout", "expected_reg_payout", "expected_postseason_payout",
+                "win_championship", "runner_up", "third_place", "win_division", "wild_card", "top_pts"
+            ]]
+            tbl_df.columns = [
+                "Franchise", "Division", "Record", "Proj Wins",
+                "Total EOS EV", "Reg Season EV", "Playoff EV",
+                "Champ %", "Runner-Up %", "3rd Place %", "Division %", "Wild Card %", "Points Title %"
+            ]
+            st.dataframe(
+                tbl_df,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "Franchise": "Franchise",
+                    "Division": "Division",
+                    "Record": "Record",
+                    "Proj Wins": st.column_config.NumberColumn("Proj Wins", format="%.1f"),
+                    "Total EOS EV": st.column_config.NumberColumn("Total EOS EV", help="Regular Season EV ($300 pool) + Playoff Podium EV ($470 pool)", format="$%.2f"),
+                    "Reg Season EV": st.column_config.NumberColumn("Reg Season EV", format="$%.2f"),
+                    "Playoff EV": st.column_config.NumberColumn("Playoff EV", help="(Champ % × $275) + (Runner-Up % × $135) + (3rd Place % × $60)", format="$%.2f"),
+                    "Champ %": st.column_config.ProgressColumn("Champ %", format="%.1f%%", min_value=0, max_value=100),
+                    "Runner-Up %": st.column_config.ProgressColumn("Runner-Up %", format="%.1f%%", min_value=0, max_value=100),
+                    "3rd Place %": st.column_config.ProgressColumn("3rd Place %", format="%.1f%%", min_value=0, max_value=100),
+                    "Division %": st.column_config.ProgressColumn("Division %", format="%.1f%%", min_value=0, max_value=100),
+                    "Wild Card %": st.column_config.ProgressColumn("Wild Card %", format="%.1f%%", min_value=0, max_value=100),
+                    "Points Title %": st.column_config.ProgressColumn("Points Title %", format="%.1f%%", min_value=0, max_value=100),
+                }
+            )
+        else:
+            tbl_df = sim_df[[
+                "franchise_name", "division", "wins", "losses", "proj_wins",
+                "expected_reg_payout", "win_division", "wild_card", "make_playoffs", "top_pts", "bye"
+            ]].copy()
 
-        tbl_df = tbl_df[[
-            "franchise_name", "division", "Record", "proj_wins",
-            "expected_reg_payout", "win_division", "wild_card", "make_playoffs", "top_pts", "bye"
-        ]]
-        tbl_df.columns = [
-            "Franchise", "Division", "Record", "Proj Wins",
-            "Expected Reg. Cash", "Win Division %", "Wild Card %", "Make Playoffs %", "Points Title %", "Bye %"
-        ]
+            tbl_df["Record"] = tbl_df["wins"].astype(str) + "-" + tbl_df["losses"].astype(str)
+            tbl_df["win_division"] = tbl_df["win_division"] * 100
+            tbl_df["wild_card"] = tbl_df["wild_card"] * 100
+            tbl_df["make_playoffs"] = tbl_df["make_playoffs"] * 100
+            tbl_df["top_pts"] = tbl_df["top_pts"] * 100
+            tbl_df["bye"] = tbl_df["bye"] * 100
 
-        st.dataframe(
-            tbl_df,
-            hide_index=True,
-            use_container_width=True,
-            column_config={
-                "Franchise": "Franchise",
-                "Division": "Division",
-                "Record": "Record",
-                "Proj Wins": st.column_config.NumberColumn("Proj Wins", format="%.1f"),
-                "Expected Reg. Cash": st.column_config.NumberColumn("Expected Cash", help="Calculated as (Div Title % × $50) + (Wild Card % × $30) + (Points Title % × $60)", format="$%.2f"),
-                "Win Division %": st.column_config.ProgressColumn("Division %", format="%.1f%%", min_value=0, max_value=100),
-                "Wild Card %": st.column_config.ProgressColumn("Wild Card %", format="%.1f%%", min_value=0, max_value=100),
-                "Make Playoffs %": st.column_config.ProgressColumn("Playoff Odds %", format="%.1f%%", min_value=0, max_value=100),
-                "Points Title %": st.column_config.ProgressColumn("Points Title %", format="%.1f%%", min_value=0, max_value=100),
-                "Bye %": st.column_config.ProgressColumn("Bye %", format="%.1f%%", min_value=0, max_value=100),
-            }
-        )
+            tbl_df = tbl_df[[
+                "franchise_name", "division", "Record", "proj_wins",
+                "expected_reg_payout", "win_division", "wild_card", "make_playoffs", "top_pts", "bye"
+            ]]
+            tbl_df.columns = [
+                "Franchise", "Division", "Record", "Proj Wins",
+                "Expected Reg. Cash", "Win Division %", "Wild Card %", "Make Playoffs %", "Points Title %", "Bye %"
+            ]
+
+            st.dataframe(
+                tbl_df,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "Franchise": "Franchise",
+                    "Division": "Division",
+                    "Record": "Record",
+                    "Proj Wins": st.column_config.NumberColumn("Proj Wins", format="%.1f"),
+                    "Expected Reg. Cash": st.column_config.NumberColumn("Expected Cash", help="Calculated as (Div Title % × $50) + (Wild Card % × $30) + (Points Title % × $60)", format="$%.2f"),
+                    "Win Division %": st.column_config.ProgressColumn("Division %", format="%.1f%%", min_value=0, max_value=100),
+                    "Wild Card %": st.column_config.ProgressColumn("Wild Card %", format="%.1f%%", min_value=0, max_value=100),
+                    "Make Playoffs %": st.column_config.ProgressColumn("Playoff Odds %", format="%.1f%%", min_value=0, max_value=100),
+                    "Points Title %": st.column_config.ProgressColumn("Points Title %", format="%.1f%%", min_value=0, max_value=100),
+                    "Bye %": st.column_config.ProgressColumn("Bye %", format="%.1f%%", min_value=0, max_value=100),
+                }
+            )
 
         st.write("")
-        # Callout card linking to Projected Standings page
+        # Callout card linking to Playoffs & Projected Standings pages
         st.markdown("""
         <div class="week-card" style="border-left: 4px solid #ba68c8; background: rgba(156, 39, 176, 0.05); padding: 14px 20px; border-radius: 12px; margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                 <div>
-                    <strong style="font-size: 1.05rem;">🔮 Looking for Projected Standings &amp; Playoff Seeds?</strong>
+                    <strong style="font-size: 1.05rem;">🏆 Explore Live Playoff Brackets &amp; Championship Paths</strong>
                     <div style="font-size: 0.88rem; opacity: 0.8; margin-top: 2px;">
-                        Explore full 3-division projected tables, playoff qualification cutoffs, first-round bye odds, and #1 draft pick probabilities on the dedicated page.
+                        Check out the full Championship &amp; Consolation Brackets, matchup previews, and Road to the Title odds on the Playoffs page.
                     </div>
                 </div>
             </div>

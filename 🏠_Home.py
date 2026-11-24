@@ -82,7 +82,7 @@ st.write("")
 # --- Section 1: Season Race & Analytics ---
 st.markdown("### 🏆 Season Race &amp; Performance Analytics")
 
-c1, c2, c3 = st.columns(3, gap="medium")
+c1, c2, c3, c4 = st.columns(4, gap="medium")
 
 with c1:
     st.markdown("""
@@ -99,6 +99,18 @@ with c1:
 with c2:
     st.markdown("""
     <div class="toc-card">
+        <span class="badge badge-gold">POSTSEASON BRACKET</span>
+        <div class="toc-title">🏆 Playoffs</div>
+        <div class="toc-desc">
+            Weeks 15–17 Championship &amp; Consolation brackets, live matchup win probabilities, Championship/Podium odds, Extra Pick chances, and Road to the Title.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.page_link("pages/9_🏆_Playoffs.py", label="Open Playoffs ➔", icon="🏆")
+
+with c3:
+    st.markdown("""
+    <div class="toc-card">
         <span class="badge badge-gold">SCORING ANALYTICS</span>
         <div class="toc-title">🏅 Points Race</div>
         <div class="toc-desc">
@@ -108,13 +120,13 @@ with c2:
     """, unsafe_allow_html=True)
     st.page_link("pages/7_🏅_Points_Race.py", label="Open Points Race ➔", icon="🏅")
 
-with c3:
+with c4:
     st.markdown("""
     <div class="toc-card">
         <span class="badge badge-green">PRIZE POOL &amp; CASH</span>
         <div class="toc-title">💵 Payouts</div>
         <div class="toc-desc">
-            Season earnings leaderboard, weekly high score awards ($10 / $6 / $4), rolling Big Win pot tracker, regular season expected cash ($ EV), and prize rules.
+            Season earnings leaderboard, weekly high score awards ($10 / $6 / $4), clinched season titles, full-season expected cash ($ EV), and prize rules.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -153,22 +165,6 @@ with r2:
     st.page_link("pages/4_🆓_Free Extensions.py", label="Open Free Extensions ➔", icon="🆓")
 
 with r3:
-    st.markdown("""
-    <div class="toc-card">
-        <span class="badge badge-gold">DEVELOPMENT</span>
-        <div class="toc-title">🚕 Taxi Claims</div>
-        <div class="toc-desc">
-            Taxi squad roster tracking, active poaching claim windows, player eligibility requirements, and draft pick compensation management.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.page_link("pages/5_🚕_Taxi Claims.py", label="Open Taxi Claims ➔", icon="🚕")
-
-st.write("")
-
-r4, _, _ = st.columns(3, gap="medium")
-
-with r4:
     st.markdown("""
     <div class="toc-card">
         <span class="badge badge-blue">ASSET CAPITAL</span>
