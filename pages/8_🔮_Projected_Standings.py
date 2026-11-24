@@ -8,11 +8,11 @@ if parent_dir not in sys.path:
 import streamlit as st
 import pandas as pd
 import numpy as np
-from itertools import combinations
 import plotly.express as px
 import plotly.graph_objects as go
 import functions
 import global_vars
+import standings_utils
 
 st.set_page_config(layout="wide", page_title="Wide Right - Projected Standings", page_icon="🔮")
 
@@ -415,225 +415,18 @@ def enrich_standings_data(sim_data, model_df, sched_df, selected_wk, available_w
         df["rem_sos_rank"] = 0
 
     # --- 4. Mathematical Clinch & Elimination Tags ([Z], [Y], [X], [E]) ---
-    # Each remaining week offers at most 2 wins per team (1 H2H + 1 Top-6 League Median).
-    # For any subset U of chasing teams, internal H2H games force 1 loss per game, and at most min(|U|, 6) teams can win the median each week.
-    def max_group_wins_possible(subset_ids):
-        k = len(subset_ids)
-        if k == 0 or w_rem == 0:
-            return 0
-        internal_games = 0
-        sub_list = list(subset_ids)
-        for idx_a in range(k):
-            for idx_b in range(idx_a + 1, k):
-                internal_games += rem_h2h[sub_list[idx_a]][sub_list[idx_b]]
-        max_h2h = (k * w_rem) - internal_games
-        max_med = min(k, 6) * w_rem
-        return max_h2h + max_med
-
-    def min_group_wins_guaranteed(subset_ids):
-        k = len(subset_ids)
-        if k == 0 or w_rem == 0:
-            return 0
-        internal_games = 0
-        sub_list = list(subset_ids)
-        for idx_a in range(k):
-            for idx_b in range(idx_a + 1, k):
-                internal_games += rem_h2h[sub_list[idx_a]][sub_list[idx_b]]
-        # Every internal H2H game guarantees 1 win to someone in subset_ids; if k > 6, at least (k - 6) teams in subset_ids win median each week
-        min_med = max(0, k - 6) * w_rem
-        return internal_games + min_med
-
-    def can_subset_all_reach(target_team, subset_ids):
-        """Returns True if every team in subset_ids can simultaneously finish ahead of or tied with target_team's floor."""
-        target_floor = wins_map[target_team]
-        needs = {}
-        for j in subset_ids:
-            # If j cannot even reach target_floor individually
-            max_j = wins_map[j] + 2 * w_rem
-            if max_j < target_floor:
-                return False
-            # If j can only tie target_floor, check if target_team already clinched H2H over j (in a 1-on-1 comparison)
-            if len(subset_ids) == 1 and max_j == target_floor:
-                if past_h2h[target_team][j] > past_h2h[j][target_team] + rem_h2h[target_team][j]:
-                    return False
-            needs[j] = max(0, target_floor - wins_map[j])
-
-        # Check Hall's capacity condition across all non-empty sub-cliques of subset_ids
-        sub_list = list(subset_ids)
-        for r_len in range(1, len(sub_list) + 1):
-            for comb in combinations(sub_list, r_len):
-                if sum(needs[x] for x in comb) > max_group_wins_possible(comb):
-                    return False
-        return True
-
-    def resolve_final_tie_group(tied_teams):
-        """Resolves a group of teams tied on final wins: H2H (sweep/round-robin %) -> Points For -> Division Wins."""
-        if len(tied_teams) <= 1:
-            return list(tied_teams)
-
-        if len(tied_teams) == 2:
-            a, b = tied_teams[0], tied_teams[1]
-            if past_h2h[a][b] != past_h2h[b][a]:
-                return [a, b] if past_h2h[a][b] > past_h2h[b][a] else [b, a]
-            return sorted(tied_teams, key=lambda t: (pf_map[t], past_div_wins[t]), reverse=True)
-
-        # Multi-team tie (3+): check round-robin H2H win percentage among the tied group
-        h2h_pct = {}
-        valid_round_robin = True
-        for a in tied_teams:
-            w = sum(past_h2h[a][b] for b in tied_teams if b != a)
-            l = sum(past_h2h[b][a] for b in tied_teams if b != a)
-            if w + l == 0:
-                valid_round_robin = False
-                break
-            h2h_pct[a] = round(w / (w + l), 6)
-
-        if valid_round_robin and len(set(h2h_pct.values())) > 1:
-            ordered = []
-            for pct in sorted(set(h2h_pct.values()), reverse=True):
-                sub_group = [t for t in tied_teams if h2h_pct[t] == pct]
-                if len(sub_group) == 1:
-                    ordered.extend(sub_group)
-                else:
-                    ordered.extend(resolve_final_tie_group(sub_group))
-            return ordered
-
-        # Circular or identical H2H tie: fall back directly to Total Regular Season Points -> Division Wins
-        return sorted(tied_teams, key=lambda t: (pf_map[t], past_div_wins[t]), reverse=True)
-
-    def rank_final_teams(teams):
-        """Exact league tiebreaker when w_rem == 0: Wins -> H2H (2-way or multi-team round-robin) -> Points For -> Division Wins."""
-        win_buckets = {}
-        for t in teams:
-            win_buckets.setdefault(wins_map[t], []).append(t)
-
-        ranked = []
-        for w in sorted(win_buckets.keys(), reverse=True):
-            ranked.extend(resolve_final_tie_group(win_buckets[w]))
-        return ranked
-
-    clinch_tags = {}
-    clinch_labels = {}
-    all_divs = sorted(df["division"].unique())
-    div_teams_map = {d: [t for t in team_ids if div_map[t] == d] for d in all_divs}
-
-    if w_rem == 0:
-        # Season complete: use exact tiebreakers
-        div_winners = []
-        for d, d_teams in div_teams_map.items():
-            d_sorted = rank_final_teams(d_teams)
-            div_winners.append(d_sorted[0])
-        div_winners_sorted = rank_final_teams(div_winners)
-        bye_Ids = set(div_winners_sorted[:2])
-        div_win_Ids = set(div_winners_sorted)
-        non_div = [t for t in team_ids if t not in div_win_Ids]
-        wc_sorted = rank_final_teams(non_div)
-        wc_Ids = set(wc_sorted[:3])
-        for tid in team_ids:
-            if tid in bye_Ids:
-                clinch_tags[tid] = "Z"
-                clinch_labels[tid] = "Clinched First-Round Bye"
-            elif tid in div_win_Ids:
-                clinch_tags[tid] = "Y"
-                clinch_labels[tid] = "Clinched Division Title"
-            elif tid in wc_Ids:
-                clinch_tags[tid] = "X"
-                clinch_labels[tid] = "Clinched Playoff Berth"
-            else:
-                clinch_tags[tid] = "E"
-                clinch_labels[tid] = "Eliminated from Playoffs"
-    else:
-        for tid in team_ids:
-            my_div = div_map[tid]
-            own_rivals = [t for t in div_teams_map[my_div] if t != tid]
-            other_divs = [d for d in all_divs if d != my_div]
-
-            # 1. Check Clinched Division [Y]: no division rival can catch tid
-            clinched_div = not any(can_subset_all_reach(tid, [r]) for r in own_rivals)
-
-            # 2. Check Clinched First-Round Bye [Z]: clinched own division AND no pair of winners from the other 2 divisions can both catch tid
-            clinched_bye = False
-            if clinched_div and len(other_divs) == 2:
-                pair_can_catch = False
-                for d1_t in div_teams_map[other_divs[0]]:
-                    for d2_t in div_teams_map[other_divs[1]]:
-                        if can_subset_all_reach(tid, [d1_t, d2_t]):
-                            pair_can_catch = True
-                            break
-                    if pair_can_catch:
-                        break
-                clinched_bye = not pair_can_catch
-
-            # 3. Check Clinched Playoffs [X]: either clinched division OR no valid (1 own-div winner + 3 wild cards) combination can simultaneously catch tid
-            clinched_playoffs = clinched_div
-            if not clinched_playoffs:
-                can_miss_playoffs = False
-                other_teams = [t for t in team_ids if t != tid]
-                # To miss the playoffs, at least 1 own-division rival must beat tid AND at least 3 other non-division-winner teams must beat tid
-                for own_w in own_rivals:
-                    if not can_subset_all_reach(tid, [own_w]):
-                        continue
-                    wc_pool = [t for t in other_teams if t != own_w]
-                    for wc_comb in combinations(wc_pool, 3):
-                        if can_subset_all_reach(tid, [own_w, *wc_comb]):
-                            can_miss_playoffs = True
-                            break
-                    if can_miss_playoffs:
-                        break
-                clinched_playoffs = not can_miss_playoffs
-
-            # 4. Check Mathematical Elimination [E]
-            max_tid_wins = wins_map[tid] + 2 * w_rem
-            # Can tid win its division?
-            can_win_div = True
-            for r in own_rivals:
-                if wins_map[r] > max_tid_wins:
-                    can_win_div = False
-                    break
-                if wins_map[r] == max_tid_wins and past_h2h[r][tid] > past_h2h[tid][r] + rem_h2h[tid][r]:
-                    can_win_div = False
-                    break
-            if can_win_div:
-                # Also check if any pair/triplet of own-division rivals is guaranteed to produce someone > max_tid_wins via H2H games
-                for r_len in range(2, len(own_rivals) + 1):
-                    for comb in combinations(own_rivals, r_len):
-                        # If all teams in comb stay <= max_tid_wins, their combined additional wins are at most sum(max_tid_wins - wins[x])
-                        if all(max_tid_wins >= wins_map[x] for x in comb):
-                            max_allowed = sum(max_tid_wins - wins_map[x] for x in comb)
-                            if min_group_wins_guaranteed(comb) > max_allowed:
-                                can_win_div = False
-                                break
-
-            # Can tid win a Wild Card spot? (Needs fewer than 3 non-division-leading teams guaranteed above max_tid_wins)
-            can_win_wc = True
-            # In each division, at least 1 team wins the division; remove 1 leader per division and count remaining teams already strictly above max_tid_wins
-            non_leaders_above = 0
-            for d, d_teams in div_teams_map.items():
-                rivals_in_d = [t for t in d_teams if t != tid]
-                above_in_d = [t for t in rivals_in_d if wins_map[t] > max_tid_wins or (wins_map[t] == max_tid_wins and past_h2h[t][tid] > past_h2h[tid][t] + rem_h2h[tid][t])]
-                # At most 1 of them is the division winner; any additional ones are guaranteed Wild Card finishers ahead of tid
-                if d == my_div:
-                    non_leaders_above += max(0, len(above_in_d) - 1)
-                else:
-                    non_leaders_above += max(0, len(above_in_d) - 1)
-            if non_leaders_above >= 3:
-                can_win_wc = False
-
-            if clinched_bye:
-                clinch_tags[tid] = "Z"
-                clinch_labels[tid] = "Clinched First-Round Bye"
-            elif clinched_div:
-                clinch_tags[tid] = "Y"
-                clinch_labels[tid] = "Clinched Division Title"
-            elif clinched_playoffs:
-                clinch_tags[tid] = "X"
-                clinch_labels[tid] = "Clinched Playoff Berth"
-            elif not can_win_div and not can_win_wc:
-                clinch_tags[tid] = "E"
-                clinch_labels[tid] = "Eliminated from Playoffs"
-            else:
-                clinch_tags[tid] = ""
-                clinch_labels[tid] = ""
+    clinch_status = standings_utils.compute_clinch_status(
+        team_ids=team_ids,
+        div_map=div_map,
+        wins_map=wins_map,
+        pf_map=pf_map,
+        past_h2h=past_h2h,
+        rem_h2h=rem_h2h,
+        past_div_wins=past_div_wins,
+        w_rem=w_rem,
+    )
+    clinch_tags = {tid: clinch_status[tid]["tag"] for tid in team_ids}
+    clinch_labels = {tid: clinch_status[tid]["label"] for tid in team_ids}
 
     df["clinch_tag"] = df["franchise_id"].map(clinch_tags)
     df["clinch_label"] = df["franchise_id"].map(clinch_labels)

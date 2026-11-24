@@ -8,9 +8,11 @@ if parent_dir not in sys.path:
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from google.cloud import bigquery
 import functions
 import global_vars
+import standings_utils
 
 st.set_page_config(layout="wide", page_title="Wide Right - 2026 Payouts", page_icon="💵")
 
@@ -141,11 +143,21 @@ st.caption("Live season winnings, weekly high scores & rolling Big Win pot, regu
 st.divider()
 
 # --- Data Fetching & Calculation ---
+def _format_cash(val):
+    """Formats dollar amount as whole dollars when exact, else 2 decimal places."""
+    if float(val).is_integer():
+        return f"${int(round(val)):,}"
+    return f"${val:,.2f}"
+
+
 @st.cache_data(ttl=300)
 def fetch_payouts_data():
     """
-    Fetches franchises, current week info, and calculates weekly payouts automatically from live 2026 game results.
-    Also checks if an official external.payouts_2026 table exists with ledger rows.
+    Fetches franchises, current week info, standings, and schedule, and calculates:
+      1. Weekly High Scores ($10 / $6 / $4) & rolling Big Win pot ($5/wk) from Weeks 1-14.
+      2. Mathematically clinched Regular Season awards (Division Titles $50 ea, locked Wild Cards $30 ea,
+         and Points Title $60 upon Week 14 completion).
+      3. Any postseason/manual ledger rows in `mfl-374514.external.payouts_2026` (if present).
     """
     # 1. Franchises
     franchises_query = """
@@ -175,15 +187,55 @@ def fetch_payouts_data():
     except Exception:
         has_official_table = False
 
-    # 4. Fetch Game Results for Weekly Payouts Calculation
+    # 4. Fetch Regular Season Game Results (Weeks 1-14) for Weekly Payouts Calculation
     results_query = """
         SELECT franchise_id, week, CAST(score AS FLOAT64) as score, result 
         FROM `mfl-374514.dbt_production.fct_results` 
-        WHERE score IS NOT NULL 
+        WHERE score IS NOT NULL AND week <= 14
         ORDER BY week ASC, score DESC
     """
     results = functions.bq_query(results_query)
     results_df = pd.DataFrame(results)
+
+    if recent_completed_wk == 0 and not results_df.empty:
+        recent_completed_wk = int(results_df["week"].max())
+        current_wk = recent_completed_wk + 1
+
+    # 4b. Fetch Standings & Schedule for Mathematical Clinch Detection
+    try:
+        standings_rows = functions.bq_query("""
+            SELECT
+                franchise_id,
+                CAST(wins AS INT64) AS wins,
+                CAST(losses AS INT64) AS losses,
+                CAST(points_for AS FLOAT64) AS points_for
+            FROM `mfl-374514.dbt_production.dim_standings`
+        """)
+    except Exception:
+        standings_rows = []
+
+    try:
+        sched_rows = functions.bq_query("""
+            SELECT 
+                CAST(s1.week_num AS INT64) AS week,
+                s1.franchise_id AS franchise_id,
+                s2.franchise_id AS opp_id,
+                s1.is_home AS is_home,
+                COALESCE(CAST(r1.score AS FLOAT64), 0.0) AS team_score,
+                COALESCE(CAST(r2.score AS FLOAT64), 0.0) AS opp_score
+            FROM `mfl-374514.dbt_production.dim_schedules` s1
+            JOIN `mfl-374514.dbt_production.dim_schedules` s2
+                ON s1.week_num = s2.week_num
+                AND s1.matchup_num = s2.matchup_num
+                AND s1.franchise_id != s2.franchise_id
+            LEFT JOIN `mfl-374514.dbt_production.fct_results` r1
+                ON s1.franchise_id = r1.franchise_id AND s1.week_num = r1.week
+            LEFT JOIN `mfl-374514.dbt_production.fct_results` r2
+                ON s2.franchise_id = r2.franchise_id AND s2.week_num = r2.week
+            ORDER BY week, s1.matchup_num
+        """)
+    except Exception:
+        sched_rows = []
 
     # Calculate weekly awards
     events = []
@@ -193,7 +245,6 @@ def fetch_payouts_data():
     # Map franchise details
     id_to_name = dict(zip(franchises_df["franchise_id"], franchises_df["franchise_name"]))
     id_to_icon = dict(zip(franchises_df["franchise_id"], franchises_df["icon"]))
-    id_to_div = dict(zip(franchises_df["franchise_id"], franchises_df["division"]))
 
     weekly_summary = {}
 
@@ -212,6 +263,7 @@ def fetch_payouts_data():
             events.append({
                 "week": wk_int,
                 "event_type": "High Score 1",
+                "category": "weekly",
                 "franchise_id": f1,
                 "franchise_name": id_to_name.get(f1, f1),
                 "icon": id_to_icon.get(f1, ""),
@@ -224,6 +276,7 @@ def fetch_payouts_data():
             events.append({
                 "week": wk_int,
                 "event_type": "High Score 2",
+                "category": "weekly",
                 "franchise_id": f2,
                 "franchise_name": id_to_name.get(f2, f2),
                 "icon": id_to_icon.get(f2, ""),
@@ -236,6 +289,7 @@ def fetch_payouts_data():
             events.append({
                 "week": wk_int,
                 "event_type": "High Score 3",
+                "category": "weekly",
                 "franchise_id": f3,
                 "franchise_name": id_to_name.get(f3, f3),
                 "icon": id_to_icon.get(f3, ""),
@@ -251,6 +305,7 @@ def fetch_payouts_data():
                 events.append({
                     "week": wk_int,
                     "event_type": "Big Win",
+                    "category": "weekly",
                     "franchise_id": f1,
                     "franchise_name": id_to_name.get(f1, f1),
                     "icon": id_to_icon.get(f1, ""),
@@ -273,6 +328,7 @@ def fetch_payouts_data():
                 events.append({
                     "week": wk_int,
                     "event_type": "Big Win (Rollover)",
+                    "category": "weekly",
                     "franchise_id": None,
                     "franchise_name": "No Winner (Rollover)",
                     "icon": "",
@@ -292,37 +348,117 @@ def fetch_payouts_data():
                 # Pot rolls over +$5
                 current_pot += 5
 
+    # 4c. Calculate Mathematically Clinched Regular Season Awards (Division Titles, Locked Wild Cards, Points Title)
+    reg_awards = standings_utils.compute_clinched_reg_season_awards(
+        franchises_records=franchises,
+        standings_records=standings_rows,
+        sched_records=sched_rows,
+        recent_completed_wk=recent_completed_wk,
+    )
+    events.extend(reg_awards["events"])
+
+    # 4d. Merge any non-overlapping postseason payouts from external.payouts_2026 (if populated)
+    if has_official_table and official_payouts is not None:
+        auto_keywords = ("high score", "big win", "division", "wild card", "points")
+        for _, r in official_payouts.iterrows():
+            ev_type = str(r.get("event_type") or "").strip()
+            ev_lower = ev_type.lower()
+            if not ev_type or any(kw in ev_lower for kw in auto_keywords):
+                continue
+            fid = r.get("franchise_id")
+            amt = float(r.get("payout") or 0)
+            if fid and amt > 0:
+                ev_wk = int(r["event_week"]) if pd.notna(r.get("event_week")) else max(recent_completed_wk, 14)
+                events.append({
+                    "week": ev_wk,
+                    "event_type": ev_type,
+                    "category": "season",
+                    "franchise_id": fid,
+                    "franchise_name": id_to_name.get(fid, fid),
+                    "icon": id_to_icon.get(fid, ""),
+                    "score": None,
+                    "payout": int(amt) if amt.is_integer() else round(amt, 2),
+                    "description": f"{ev_type} ({_format_cash(amt)})"
+                })
+
     events_df = pd.DataFrame(events)
 
     # 5. Build Aggregated Leaderboard
     leaderboard = franchises_df.copy()
+    weekly_paid_out = 0
+    season_paid_out = 0
+    season_labels_map = {}
+    season_podium_map = {}
+
     if not events_df.empty:
         won_events = events_df[events_df["payout"] > 0]
+        weekly_won = won_events[won_events["category"] == "weekly"]
+        season_won = won_events[won_events["category"] == "season"]
+
+        weekly_sum_raw = float(weekly_won["payout"].sum()) if not weekly_won.empty else 0.0
+        season_sum_raw = float(season_won["payout"].sum()) if not season_won.empty else 0.0
+        weekly_paid_out = int(round(weekly_sum_raw)) if weekly_sum_raw.is_integer() else round(weekly_sum_raw, 2)
+        season_paid_out = int(round(season_sum_raw)) if season_sum_raw.is_integer() else round(season_sum_raw, 2)
+
         payouts_by_team = won_events.groupby("franchise_id")["payout"].sum().reset_index()
-        h1_by_team = won_events[won_events["event_type"] == "High Score 1"].groupby("franchise_id")["payout"].count().reset_index().rename(columns={"payout": "h1_count"})
-        h2_by_team = won_events[won_events["event_type"] == "High Score 2"].groupby("franchise_id")["payout"].count().reset_index().rename(columns={"payout": "h2_count"})
-        h3_by_team = won_events[won_events["event_type"] == "High Score 3"].groupby("franchise_id")["payout"].count().reset_index().rename(columns={"payout": "h3_count"})
-        bw_by_team = won_events[won_events["event_type"] == "Big Win"].groupby("franchise_id")["payout"].count().reset_index().rename(columns={"payout": "bw_count"})
+        weekly_by_team = weekly_won.groupby("franchise_id")["payout"].sum().reset_index().rename(columns={"payout": "weekly_payout"})
+        season_by_team = season_won.groupby("franchise_id")["payout"].sum().reset_index().rename(columns={"payout": "season_payout"})
+        h1_by_team = weekly_won[weekly_won["event_type"] == "High Score 1"].groupby("franchise_id")["payout"].count().reset_index().rename(columns={"payout": "h1_count"})
+        h2_by_team = weekly_won[weekly_won["event_type"] == "High Score 2"].groupby("franchise_id")["payout"].count().reset_index().rename(columns={"payout": "h2_count"})
+        h3_by_team = weekly_won[weekly_won["event_type"] == "High Score 3"].groupby("franchise_id")["payout"].count().reset_index().rename(columns={"payout": "h3_count"})
+        bw_by_team = weekly_won[weekly_won["event_type"] == "Big Win"].groupby("franchise_id")["payout"].count().reset_index().rename(columns={"payout": "bw_count"})
+
+        for fid, grp in season_won.groupby("franchise_id"):
+            tbl_parts = []
+            pod_parts = []
+            for _, sr in grp.iterrows():
+                et = sr["event_type"]
+                amt_str = _format_cash(sr["payout"])
+                if et == "Division Title":
+                    tbl_parts.append(f"🛡️ Div ({amt_str})")
+                    pod_parts.append(f"🛡️ Div Title (+{amt_str})")
+                elif et == "Wild Card":
+                    tbl_parts.append(f"🃏 WC ({amt_str})")
+                    pod_parts.append(f"🃏 Wild Card (+{amt_str})")
+                elif et == "Points Title":
+                    tbl_parts.append(f"🏅 Pts ({amt_str})")
+                    pod_parts.append(f"🏅 Points Title (+{amt_str})")
+                else:
+                    tbl_parts.append(f"🏆 {et} ({amt_str})")
+                    pod_parts.append(f"🏆 {et} (+{amt_str})")
+            season_labels_map[fid] = ", ".join(tbl_parts)
+            season_podium_map[fid] = " &bull; ".join(pod_parts)
 
         leaderboard = leaderboard.merge(payouts_by_team, on="franchise_id", how="left")
+        leaderboard = leaderboard.merge(weekly_by_team, on="franchise_id", how="left")
+        leaderboard = leaderboard.merge(season_by_team, on="franchise_id", how="left")
         leaderboard = leaderboard.merge(h1_by_team, on="franchise_id", how="left")
         leaderboard = leaderboard.merge(h2_by_team, on="franchise_id", how="left")
         leaderboard = leaderboard.merge(h3_by_team, on="franchise_id", how="left")
         leaderboard = leaderboard.merge(bw_by_team, on="franchise_id", how="left")
     else:
         leaderboard["payout"] = 0
+        leaderboard["weekly_payout"] = 0
+        leaderboard["season_payout"] = 0
         leaderboard["h1_count"] = 0
         leaderboard["h2_count"] = 0
         leaderboard["h3_count"] = 0
         leaderboard["bw_count"] = 0
 
-    leaderboard["payout"] = leaderboard["payout"].fillna(0).astype(int)
+    leaderboard["payout"] = leaderboard["payout"].fillna(0.0)
+    leaderboard["weekly_payout"] = leaderboard["weekly_payout"].fillna(0.0)
+    leaderboard["season_payout"] = leaderboard["season_payout"].fillna(0.0)
     leaderboard["h1_count"] = leaderboard["h1_count"].fillna(0).astype(int)
     leaderboard["h2_count"] = leaderboard["h2_count"].fillna(0).astype(int)
     leaderboard["h3_count"] = leaderboard["h3_count"].fillna(0).astype(int)
     leaderboard["bw_count"] = leaderboard["bw_count"].fillna(0).astype(int)
+    leaderboard["season_awards_label"] = leaderboard["franchise_id"].map(season_labels_map).fillna("—")
+    leaderboard["season_awards_podium"] = leaderboard["franchise_id"].map(season_podium_map).fillna("")
 
-    leaderboard = leaderboard.sort_values(by=["payout", "h1_count", "bw_count", "franchise_name"], ascending=[False, False, False, True]).reset_index(drop=True)
+    leaderboard = leaderboard.sort_values(
+        by=["payout", "season_payout", "h1_count", "bw_count", "franchise_name"],
+        ascending=[False, False, False, False, True],
+    ).reset_index(drop=True)
     leaderboard["Rank"] = leaderboard.index + 1
 
     return {
@@ -333,7 +469,13 @@ def fetch_payouts_data():
         "recent_completed_wk": recent_completed_wk,
         "current_wk": current_wk,
         "has_official_table": has_official_table,
-        "franchises_df": franchises_df
+        "franchises_df": franchises_df,
+        "weekly_paid_out": weekly_paid_out,
+        "season_paid_out": season_paid_out,
+        "clinched_divisions": reg_awards["clinched_divisions"],
+        "clinched_wild_cards": reg_awards["clinched_wild_cards"],
+        "clinched_points_title": reg_awards["clinched_points_title"],
+        "w_rem": reg_awards["w_rem"],
     }
 
 @st.cache_data(ttl=300)
@@ -384,12 +526,28 @@ current_pot = data["current_pot"]
 recent_completed_wk = data["recent_completed_wk"]
 current_wk = data["current_wk"]
 has_official_table = data["has_official_table"]
+weekly_paid_out = data["weekly_paid_out"]
+season_paid_out = data["season_paid_out"]
+clinched_divisions = data["clinched_divisions"]
+clinched_wild_cards = data["clinched_wild_cards"]
+clinched_points_title = data["clinched_points_title"]
+w_rem = data["w_rem"]
 
 # --- Global Metrics ---
 TOTAL_LEAGUE_POT = 1120
-total_paid_out = int(leaderboard_df["payout"].sum())
+WEEKLY_POOL = 350
+SEASON_PLAYOFF_POOL = 770
+total_paid_out = weekly_paid_out + season_paid_out
 total_remaining = TOTAL_LEAGUE_POT - total_paid_out
-weekly_prizes_left = 350 - total_paid_out
+weekly_prizes_left = WEEKLY_POOL - weekly_paid_out
+season_prizes_left = SEASON_PLAYOFF_POOL - season_paid_out
+
+paid_out_sub = (
+    f"{_format_cash(weekly_paid_out)} Weekly &bull; {_format_cash(season_paid_out)} Season Clinched"
+    if season_paid_out > 0
+    else f"Weeks 1 – {recent_completed_wk} High Scores &amp; Big Wins"
+)
+big_win_lbl = f"Week {current_wk} Big Win Pot" if recent_completed_wk < 14 else "Final Big Win Pot"
 
 m1, m2, m3, m4 = st.columns(4)
 with m1:
@@ -404,14 +562,14 @@ with m2:
     st.markdown(f"""
     <div class="metric-card">
         <div class="metric-lbl">Paid Out to Date</div>
-        <div class="metric-val" style="color: #4CAF50;">${total_paid_out:,}</div>
-        <div class="metric-sub">Weeks 1 – {recent_completed_wk} High Scores &amp; Big Wins</div>
+        <div class="metric-val" style="color: #4CAF50;">{_format_cash(total_paid_out)}</div>
+        <div class="metric-sub">{paid_out_sub}</div>
     </div>
     """, unsafe_allow_html=True)
 with m3:
     st.markdown(f"""
     <div class="metric-card">
-        <div class="metric-lbl">Week {current_wk} Big Win Pot</div>
+        <div class="metric-lbl">{big_win_lbl}</div>
         <div class="metric-val" style="color: #FFC107;">${current_pot:,}</div>
         <div class="metric-sub">Rolling Pot &bull; Margin ≥ 12.0 pts</div>
     </div>
@@ -420,8 +578,8 @@ with m4:
     st.markdown(f"""
     <div class="metric-card">
         <div class="metric-lbl">Prize Money Remaining</div>
-        <div class="metric-val" style="color: #2196F3;">${total_remaining:,}</div>
-        <div class="metric-sub">${weekly_prizes_left:,} Weekly &bull; $770 Season/Playoffs</div>
+        <div class="metric-val" style="color: #2196F3;">{_format_cash(total_remaining)}</div>
+        <div class="metric-sub">{_format_cash(weekly_prizes_left)} Weekly &bull; {_format_cash(season_prizes_left)} Season/Playoffs</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -449,6 +607,11 @@ with tab_leaders:
         top2 = leaderboard_df.iloc[1]
         top3 = leaderboard_df.iloc[2]
 
+        def _podium_season_html(row):
+            if row["season_awards_podium"]:
+                return f'<div style="margin-top: 6px;"><span class="badge badge-gold">{row["season_awards_podium"]}</span></div>'
+            return ""
+
         with p1:
             icon_html = f'<img src="{top1["icon"]}" width="54" style="border-radius:50%; margin-bottom:8px;">' if top1["icon"] else '🥇'
             st.markdown(f"""
@@ -459,6 +622,7 @@ with tab_leaders:
                 <div style="font-size: 0.85rem; opacity: 0.7;">{top1['division']} Division</div>
                 <div class="metric-val" style="color: #FFD700; font-size: 2rem;">${top1['payout']:.2f}</div>
                 <div style="font-size: 0.8rem; opacity: 0.8;">{top1['h1_count']}x 1st &bull; {top1['h2_count']}x 2nd &bull; {top1['bw_count']}x Big Win</div>
+                {_podium_season_html(top1)}
             </div>
             """, unsafe_allow_html=True)
 
@@ -472,6 +636,7 @@ with tab_leaders:
                 <div style="font-size: 0.85rem; opacity: 0.7;">{top2['division']} Division</div>
                 <div class="metric-val" style="color: #757575; font-size: 2rem;">${top2['payout']:.2f}</div>
                 <div style="font-size: 0.8rem; opacity: 0.8;">{top2['h1_count']}x 1st &bull; {top2['h2_count']}x 2nd &bull; {top2['bw_count']}x Big Win</div>
+                {_podium_season_html(top2)}
             </div>
             """, unsafe_allow_html=True)
 
@@ -485,42 +650,116 @@ with tab_leaders:
                 <div style="font-size: 0.85rem; opacity: 0.7;">{top3['division']} Division</div>
                 <div class="metric-val" style="color: #CD7F32; font-size: 2rem;">${top3['payout']:.2f}</div>
                 <div style="font-size: 0.8rem; opacity: 0.8;">{top3['h1_count']}x 1st &bull; {top3['h2_count']}x 2nd &bull; {top3['bw_count']}x Big Win</div>
+                {_podium_season_html(top3)}
             </div>
             """, unsafe_allow_html=True)
+
+    # Clinched Regular Season Awards Banner (shown once any division/WC/points award is locked in)
+    if clinched_divisions or clinched_wild_cards or clinched_points_title:
+        st.write("")
+        award_pills = []
+        for div_name in ["Left Upright", "Crossbar", "Right Upright"]:
+            if div_name in clinched_divisions:
+                info = clinched_divisions[div_name]
+                award_pills.append(
+                    f'<span class="badge badge-gold">🛡️ {div_name} ($50): {info["franchise_name"]} (Wk {info["clinch_wk"]})</span>'
+                )
+        for wc in clinched_wild_cards:
+            award_pills.append(
+                f'<span class="badge badge-rollover">🃏 Wild Card ($30): {wc["franchise_name"]} (Wk {wc["clinch_wk"]})</span>'
+            )
+        for pt in clinched_points_title:
+            award_pills.append(
+                f'<span class="badge badge-bigwin">🏅 Points Title ({_format_cash(pt["payout"])}): {pt["franchise_name"]}</span>'
+            )
+        st.markdown(f"""
+        <div class="week-card" style="border-left: 5px solid #FFC107; background: rgba(255, 193, 7, 0.06); padding: 12px 18px; margin-bottom: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                <strong style="font-size: 1.0rem;">🏅 Clinched Regular Season Awards Credited</strong>
+                <strong style="color: #FFC107;">{_format_cash(season_paid_out)} Assigned</strong>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                {''.join(award_pills)}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.write("")
 
     # Full Leaderboard Table & Earnings Chart
-    col_table, col_chart = st.columns([1.1, 0.9], gap="large")
+    col_table, col_chart = st.columns([1.15, 0.85], gap="large")
 
     with col_table:
         st.markdown("#### Complete Earnings Standings")
-        display_df = leaderboard_df[["Rank", "franchise_name", "division", "payout", "h1_count", "h2_count", "h3_count", "bw_count"]].copy()
+        display_df = leaderboard_df[[
+            "Rank", "franchise_name", "division", "payout", "season_awards_label",
+            "h1_count", "h2_count", "h3_count", "bw_count"
+        ]].copy()
         display_df["payout"] = display_df["payout"].apply(lambda x: f"${x:,.2f}")
-        display_df.columns = ["Rank", "Franchise", "Division", "Total Winnings", "1st High ($10)", "2nd High ($6)", "3rd High ($4)", "Big Wins"]
+        display_df.columns = [
+            "Rank", "Franchise", "Division", "Total Winnings", "Season Awards",
+            "1st High ($10)", "2nd High ($6)", "3rd High ($4)", "Big Wins"
+        ]
         st.dataframe(display_df, hide_index=True, use_container_width=True)
 
     with col_chart:
         st.markdown("#### Cash Won by Franchise")
-        chart_df = leaderboard_df.sort_values(by="payout", ascending=True)
-        fig = px.bar(
-            chart_df,
-            x="payout",
-            y="franchise_name",
-            orientation="h",
-            labels={"payout": "Winnings ($)", "franchise_name": "Franchise"},
-            color="payout",
-            color_continuous_scale="Viridis",
-            text="payout"
-        )
-        fig.update_traces(texttemplate="$%{x:.0f}", textposition="outside", cliponaxis=False)
-        fig.update_layout(
-            margin=dict(l=0, r=40, t=10, b=10),
-            height=380,
-            coloraxis_showscale=False,
-            xaxis=dict(visible=False),
-            yaxis=dict(title="")
-        )
+        chart_df = leaderboard_df.sort_values(by=["payout", "franchise_name"], ascending=[True, False])
+        if season_paid_out > 0:
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                y=chart_df["franchise_name"],
+                x=chart_df["weekly_payout"],
+                name="Weekly Prizes",
+                orientation="h",
+                marker_color="#4CAF50",
+                hovertemplate="<b>%{y}</b><br>Weekly Prizes: $%{x:,.2f}<extra></extra>",
+            ))
+            fig.add_trace(go.Bar(
+                y=chart_df["franchise_name"],
+                x=chart_df["season_payout"],
+                name="Clinched Season Awards",
+                orientation="h",
+                marker_color="#FFC107",
+                hovertemplate="<b>%{y}</b><br>Season Awards: $%{x:,.2f}<extra></extra>",
+            ))
+            fig.add_trace(go.Scatter(
+                y=chart_df["franchise_name"],
+                x=chart_df["payout"],
+                text=[_format_cash(v) for v in chart_df["payout"]],
+                mode="text",
+                textposition="middle right",
+                showlegend=False,
+                hoverinfo="skip",
+            ))
+            max_payout = float(chart_df["payout"].max()) if not chart_df.empty else 0.0
+            fig.update_layout(
+                barmode="stack",
+                margin=dict(l=0, r=48, t=30, b=10),
+                height=390,
+                xaxis=dict(visible=False, range=[0, max(max_payout * 1.18, 10)]),
+                yaxis=dict(title=""),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            )
+        else:
+            fig = px.bar(
+                chart_df,
+                x="payout",
+                y="franchise_name",
+                orientation="h",
+                labels={"payout": "Winnings ($)", "franchise_name": "Franchise"},
+                color="payout",
+                color_continuous_scale="Viridis",
+                text="payout"
+            )
+            fig.update_traces(texttemplate="$%{x:.0f}", textposition="outside", cliponaxis=False)
+            fig.update_layout(
+                margin=dict(l=0, r=40, t=10, b=10),
+                height=380,
+                coloraxis_showscale=False,
+                xaxis=dict(visible=False),
+                yaxis=dict(title="")
+            )
         st.plotly_chart(fig, use_container_width=True)
 
     # Franchise Detail Breakdown Expander
@@ -532,8 +771,10 @@ with tab_leaders:
     )
 
     if selected_franchise and not events_df.empty:
-        f_events = events_df[events_df["franchise_name"] == selected_franchise]
+        f_events = events_df[(events_df["franchise_name"] == selected_franchise) & (events_df["payout"] > 0)].copy()
         if not f_events.empty:
+            f_events["cat_order"] = f_events["category"].map({"weekly": 0, "season": 1}).fillna(2)
+            f_events = f_events.sort_values(by=["week", "cat_order"], ascending=[True, True])
             f_display = f_events[["week", "event_type", "payout", "description"]].copy()
             f_display["payout"] = f_display["payout"].apply(lambda x: f"${x:,.2f}")
             f_display.columns = ["Week", "Award / Event", "Amount", "Details"]
@@ -645,6 +886,11 @@ with tab_projections:
         top_ev_franchise = sim_df.iloc[0]
 
         # Top Model Metrics Bar
+        eos_sub = (
+            f"{_format_cash(season_paid_out)} Clinched &bull; {_format_cash(season_prizes_left)} Up for Grabs"
+            if season_paid_out > 0
+            else "$300 Reg Season &bull; $470 Postseason"
+        )
         sm1, sm2, sm3, sm4 = st.columns(4)
         with sm1:
             st.markdown("""
@@ -655,19 +901,19 @@ with tab_projections:
             </div>
             """, unsafe_allow_html=True)
         with sm2:
-            st.markdown("""
+            st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-lbl">End of Season Purse</div>
                 <div class="metric-val" style="color: #FFC107;">$770</div>
-                <div class="metric-sub">$300 Reg Season &bull; $470 Postseason</div>
+                <div class="metric-sub">{eos_sub}</div>
             </div>
             """, unsafe_allow_html=True)
         with sm3:
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-lbl">Prize Money Remaining</div>
-                <div class="metric-val" style="color: #2196F3;">${total_remaining:,}</div>
-                <div class="metric-sub">${weekly_prizes_left:,} Weekly &bull; $770 Season/Playoffs</div>
+                <div class="metric-val" style="color: #2196F3;">{_format_cash(total_remaining)}</div>
+                <div class="metric-sub">{_format_cash(weekly_prizes_left)} Weekly &bull; {_format_cash(season_prizes_left)} Season/Playoffs</div>
             </div>
             """, unsafe_allow_html=True)
         with sm4:
@@ -686,6 +932,7 @@ with tab_projections:
         st.markdown("#### 🎁 End of Season Prize Pool &amp; Live Projected Favorites")
         
         p1, p2, p3 = st.columns(3, gap="large")
+        is_latest_model_wk = (selected_model_wk == available_model_weeks[0])
 
         # Division Favorites
         lu_top = sim_df[sim_df["division"] == "Left Upright"].sort_values(by="win_division", ascending=False).iloc[0]
@@ -700,36 +947,77 @@ with tab_projections:
         one_seed_fav = sim_df.sort_values(by="one_seed", ascending=False).iloc[0]
         bye_favs = sim_df.sort_values(by="bye", ascending=False).head(2)
 
+        def _div_line_html(div_name, top_row):
+            if is_latest_model_wk and div_name in clinched_divisions:
+                winner_name = clinched_divisions[div_name]["franchise_name"]
+                return f'<div>&bull; <strong>{div_name} ($50):</strong> {winner_name} <span class="badge badge-bigwin">CLINCHED ✓</span></div>'
+            return f'<div>&bull; <strong>{div_name} ($50):</strong> {top_row["franchise_name"]} <span class="badge badge-gold">{top_row["win_division"]*100:.1f}%</span></div>'
+
+        clinched_div_cnt = len(clinched_divisions) if is_latest_model_wk else 0
+        div_rem_amt = 150 - (clinched_div_cnt * 50)
+        if clinched_div_cnt == 3:
+            div_header_amt = "All Clinched ($150)"
+        elif clinched_div_cnt > 0:
+            div_header_amt = f"${div_rem_amt} Left"
+        else:
+            div_header_amt = "$150 Total"
+        div_sub_note = (
+            f"<strong>$50.00</strong> per division &bull; <strong>${clinched_div_cnt * 50}</strong> already credited on Leaderboard:"
+            if clinched_div_cnt > 0
+            else "<strong>$50.00</strong> to 1st place in each division. Current favorites:"
+        )
+
         with p1:
             st.markdown(f"""
             <div class="metric-card" style="text-align: left; padding: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span class="badge badge-gold">REGULAR SEASON</span>
-                    <strong style="color: #FFC107; font-size: 1.25rem;">$150 Total</strong>
+                    <strong style="color: #FFC107; font-size: 1.2rem;">{div_header_amt}</strong>
                 </div>
                 <h4 style="margin: 10px 0 6px 0;">🛡️ 3x Division Titles</h4>
-                <div style="font-size: 0.88rem; opacity: 0.8; margin-bottom: 12px;"><strong>$50.00</strong> to 1st place in each division. Current favorites:</div>
+                <div style="font-size: 0.88rem; opacity: 0.8; margin-bottom: 12px;">{div_sub_note}</div>
                 <div style="font-size: 0.88rem; line-height: 1.6;">
-                    <div>&bull; <strong>Left Upright ($50):</strong> {lu_top['franchise_name']} <span class="badge badge-gold">{lu_top['win_division']*100:.1f}%</span></div>
-                    <div>&bull; <strong>Crossbar ($50):</strong> {cb_top['franchise_name']} <span class="badge badge-gold">{cb_top['win_division']*100:.1f}%</span></div>
-                    <div>&bull; <strong>Right Upright ($50):</strong> {ru_top['franchise_name']} <span class="badge badge-gold">{ru_top['win_division']*100:.1f}%</span></div>
+                    {_div_line_html("Left Upright", lu_top)}
+                    {_div_line_html("Crossbar", cb_top)}
+                    {_div_line_html("Right Upright", ru_top)}
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
         with p2:
-            wc_list_html = ", ".join([f"{r['franchise_name']} ({r['wild_card']*100:.1f}%)" for _, r in wc_contenders.iterrows()])
+            clinched_wc_id_set = {w["franchise_id"] for w in clinched_wild_cards} if is_latest_model_wk else set()
+            wc_parts = []
+            for _, r in wc_contenders.iterrows():
+                if r["franchise_id"] in clinched_wc_id_set:
+                    wc_parts.append(f'{r["franchise_name"]} <span class="badge badge-bigwin">CLINCHED ✓</span>')
+                else:
+                    wc_parts.append(f'{r["franchise_name"]} ({r["wild_card"]*100:.1f}%)')
+            wc_list_html = ", ".join(wc_parts)
+
+            if is_latest_model_wk and clinched_points_title:
+                pts_names = " / ".join(p["franchise_name"] for p in clinched_points_title)
+                pts_line_html = f'{pts_names} <span class="badge badge-bigwin">WON ✓</span>'
+            else:
+                pts_line_html = f'{pts_favorite["franchise_name"]} <span class="badge badge-bigwin">{pts_favorite["top_pts"]*100:.1f}%</span>'
+
+            wc_pts_awarded = (len(clinched_wc_id_set) * 30) + (60 if (is_latest_model_wk and clinched_points_title) else 0)
+            wc_pts_rem = 150 - wc_pts_awarded
+            wc_pts_header = (
+                "All Clinched ($150)" if wc_pts_rem == 0
+                else (f"${wc_pts_rem} Left" if wc_pts_awarded > 0 else "$150 Total")
+            )
+
             st.markdown(f"""
             <div class="metric-card" style="text-align: left; padding: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span class="badge badge-silver">REGULAR SEASON</span>
-                    <strong style="color: #64b5f6; font-size: 1.25rem;">$150 Total</strong>
+                    <strong style="color: #64b5f6; font-size: 1.2rem;">{wc_pts_header}</strong>
                 </div>
                 <h4 style="margin: 10px 0 6px 0;">🃏 Wild Cards &amp; Points Title</h4>
                 <div style="font-size: 0.88rem; opacity: 0.8; margin-bottom: 12px;">Non-division playoff seeds ($90) &amp; Total Scoring Leader ($60):</div>
                 <div style="font-size: 0.88rem; line-height: 1.6;">
                     <div>&bull; <strong>Wild Card Contenders ($30 ea):</strong> {wc_list_html}</div>
-                    <div style="margin-top: 4px;">&bull; <strong>Points Title ($60):</strong> {pts_favorite['franchise_name']} <span class="badge badge-bigwin">{pts_favorite['top_pts']*100:.1f}%</span></div>
+                    <div style="margin-top: 4px;">&bull; <strong>Points Title ($60):</strong> {pts_line_html}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -929,7 +1217,7 @@ with tab_rules:
 
         with st.expander("🛡️ Division & Points Titles", expanded=False):
             st.write("""
-            - **Division Titles**: Awarded to the regular season winner of each of the 3 divisions (Left Upright, Crossbar, Right Upright).
-            - **Wild Cards**: Awarded to the top 3 non-division-winning teams qualifying for the playoffs.
-            - **Points Title**: Awarded to the franchise that scores the highest cumulative points for across Weeks 1 through 14.
+            - **Division Titles (\\$50 each)**: Awarded to the regular season winner of each of the 3 divisions (Left Upright, Crossbar, Right Upright). Credited automatically to the Season Leaderboard as soon as a franchise mathematically clinches its division.
+            - **Wild Cards (\\$30 each)**: Awarded to the top 3 non-division-winning teams qualifying for the playoffs. Credited automatically once a team is mathematically locked into a Wild Card spot or upon completion of Week 14.
+            - **Points Title (\\$60)**: Awarded to the franchise that scores the highest cumulative points for across Weeks 1 through 14.
             """)
